@@ -684,10 +684,11 @@ evolve into a distributed system involving the following cloud resources:
 * A [NAS](https://www.alibabacloud.com/product/nas) to let multiple ECS instances to share a common file storage system;
 * An external [database](https://www.alibabacloud.com/product/apsaradb-for-rds-postgresql).
 
-As you can see the complexity can quickly increase. Tools such as [Terraform](https://www.terraform.io/)
-(infrastructure as code software) or [Chef](https://www.chef.io/) / [Puppet](https://puppet.com/) /
-[Ansible](https://www.ansible.com/) / [SaltStack](https://www.saltstack.com/) (configuration management) can greatly
-help managing it: they require an initial investment but allow organizations to better manage their systems.
+As you can see the complexity can quickly increase. Tools such as [Packer](https://www.packer.io/) (machine image
+builder), [Terraform](https://www.terraform.io/) (infrastructure as code software) or [Chef](https://www.chef.io/) /
+[Puppet](https://puppet.com/) / [Ansible](https://www.ansible.com/) / [SaltStack](https://www.saltstack.com/)
+(configuration management) can greatly help managing it: they require an initial investment but allow organizations
+to better manage their systems.
 
 Another solution is to let other companies to manage this complexity for you. There are
 many [SaaS](https://en.wikipedia.org/wiki/Software_as_a_service) vendors such as
