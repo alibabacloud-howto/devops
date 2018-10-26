@@ -5,3 +5,6 @@
 **/terraform.tfstate.backup
 **/.terraform.tfstate.lock.info
 **/target
+**/_site
+**/.sass-cache
+**/.jekyll-metadata
