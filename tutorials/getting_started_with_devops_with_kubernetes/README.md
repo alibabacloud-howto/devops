@@ -153,7 +153,7 @@ on Alibaba Cloud via Terraform. Instead, this step must be done manually through
 
 Keep this page opened in the web browser, we will need to create a repository in the next step.
 
-## CI/CI Pipeline
+## CI/CD Pipeline
 This tutorial uses a very simple [Spring Boot](https://spring.io/guides/gs/spring-boot/) app as an example. You can find
 the source code in the folder `app/simple-rest-service`.
 
