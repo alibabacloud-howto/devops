@@ -3,12 +3,13 @@
 <head>
     <meta charset="utf-8">
     <title>{{ page.title }}</title>
-    <link rel="stylesheet" href="assets/css/default.css">
+    {% include base.html %}
+    <link rel="stylesheet" href="{{base}}/assets/css/default.css">
 </head>
 <body>
 <header>
     <a href="https://www.alibabacloud.com/" target="_blank" id="header_logo">
-        <img src="assets/images/alibabacloud_logo.png" alt="Alibaba Cloud" class="logo"/>
+        <img src="{{base}}/assets/images/alibabacloud_logo.png" alt="Alibaba Cloud" class="logo"/>
     </a>
     <div id="header_title">
         DevOps tutorials
@@ -17,11 +18,11 @@
 <main>
     <nav>
         <h1>Tutorials</h1>
-        <a href="index" {% if page.url== '/' %}class="current" {% endif %}>
+        <a href="{{base}}/index" {% if page.url== '/' %}class="current" {% endif %}>
         Home
         </a>
         {% for tutorial in site.data.tutorials %}
-        <a href="{{ tutorial.link }}" {% if page.url== tutorial.link %}class="current" {% endif %}>
+        <a href="{{base}}/{{ tutorial.link }}" {% if page.url== tutorial.link %}class="current" {% endif %}>
             {{ tutorial.name }}
         </a>
         {% endfor %}

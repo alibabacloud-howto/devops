@@ -7,7 +7,7 @@ layout: default
 <ul>
     {% for tutorial in site.data.tutorials %}
     <li>
-        <a href="{{ tutorial.link }}" class="index_tutorial_title">
+        <a href="{{base}}/{{ tutorial.link }}" class="index_tutorial_title">
             {{ tutorial.name }}
         </a>
         <p class="index_tutorial_description">
