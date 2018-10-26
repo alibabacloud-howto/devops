@@ -1,0 +1,11 @@
+- name: Getting started with CI/CD and Kubernetes
+  link: tutorial_abc
+  description: >-
+    Tutorial about bla bla, this and that...
+  concepts: GitLab, Kubernetes, CI/CD, Jenkins
+- name: DevOps for small-to-medium web applications
+  link: tutorial_def
+  description: >-
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
+    dolore magna aliqua. Ut enim ad minim veniam, quis nostrud...
+  concepts: Docker, Jenkins, Swarm

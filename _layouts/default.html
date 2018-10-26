@@ -6,9 +6,26 @@
     <link rel="stylesheet" href="assets/css/default.css">
 </head>
 <body>
-<header>Alibaba Cloud</header>
+<header>
+    <a href="https://www.alibabacloud.com/" target="_blank" id="header_logo">
+        <img src="assets/images/alibabacloud_logo.png" alt="Alibaba Cloud" class="logo"/>
+    </a>
+    <div id="header_title">
+        DevOps tutorials
+    </div>
+</header>
 <main>
-    <nav>Menu</nav>
+    <nav>
+        <h1>Tutorials</h1>
+        <a href="index" {% if page.url== '/' %}class="current" {% endif %}>
+        Home
+        </a>
+        {% for tutorial in site.data.tutorials %}
+        <a href="{{ tutorial.link }}" {% if page.url== tutorial.link %}class="current" {% endif %}>
+            {{ tutorial.name }}
+        </a>
+        {% endfor %}
+    </nav>
     <article>{{ content }}</article>
 </main>
 </body>
