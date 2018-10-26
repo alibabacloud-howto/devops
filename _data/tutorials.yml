@@ -4,9 +4,3 @@
     The goal of this tutorial is to explain how to create a CI/CD pipeline in order to deploy an application
     in Kubernetes running on top of Alibaba Cloud.
   concepts: CI/CD, Git, GitLab, Docker, Kubernetes, Terraform, Java, Maven, Spring Boot
-- name: DevOps for small-to-medium web applications
-  link: tutorial_def
-  description: >-
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
-    dolore magna aliqua. Ut enim ad minim veniam, quis nostrud...
-  concepts: Docker, Jenkins, Swarm
