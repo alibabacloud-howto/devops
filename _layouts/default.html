@@ -22,7 +22,8 @@
         Home
         </a>
         {% for tutorial in site.data.tutorials %}
-        <a href="{{base}}/{{ tutorial.link }}" {% if page.url== tutorial.link %}class="current" {% endif %}>
+        {% assign tutorialLink = '/' | append: tutorial.link %}
+        <a href="{{base}}/{{ tutorial.link }}" {% if page.url== tutorialLink %}class="current" {% endif %}>
             {{ tutorial.name }}
         </a>
         {% endfor %}

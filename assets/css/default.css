@@ -57,7 +57,7 @@ nav {
     display: flex;
     flex-direction: column;
 
-    width: 450px;
+    min-width: 450px;
     padding-right: 16px;
 }
 
