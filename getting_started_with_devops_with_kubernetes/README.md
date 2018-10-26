@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # Getting started with DevOps with Kubernetes
 
 ## Summary
