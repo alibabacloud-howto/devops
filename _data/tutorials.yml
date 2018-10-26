@@ -1,8 +1,9 @@
 - name: Getting started with CI/CD and Kubernetes
-  link: tutorial_abc
+  link: getting_started_with_devops_with_kubernetes/README.md
   description: >-
-    Tutorial about bla bla, this and that...
-  concepts: GitLab, Kubernetes, CI/CD, Jenkins
+    The goal of this tutorial is to explain how to create a CI/CD pipeline in order to deploy an application
+    in Kubernetes running on top of Alibaba Cloud.
+  concepts: CI/CD, Git, GitLab, Docker, Kubernetes, Terraform, Java, Maven, Spring Boot
 - name: DevOps for small-to-medium web applications
   link: tutorial_def
   description: >-
