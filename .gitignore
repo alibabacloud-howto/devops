@@ -1,0 +1,12 @@
+**/.idea
+**/*.iml
+**/.terraform
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/.terraform.tfstate.lock.info
+**/target
+**/_site
+**/.sass-cache
+**/.jekyll-metadata
+**/.ruby-version
+**/Gemfile.lock

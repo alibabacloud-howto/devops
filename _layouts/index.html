@@ -1,0 +1,22 @@
+---
+layout: default
+---
+{{ content }}
+
+<h2>Tutorials</h2>
+<ul>
+    {% for tutorial in site.data.tutorials %}
+    <li>
+        <a href="{{ tutorial.link }}" class="index_tutorial_title">
+            {{ tutorial.name }}
+        </a>
+        <p class="index_tutorial_description">
+            {{ tutorial.description }}
+        </p>
+        <p class="index_tutorial_concepts">
+            {{ tutorial.concepts }}
+        </p>
+    </li>
+
+    {% endfor %}
+</ul>
