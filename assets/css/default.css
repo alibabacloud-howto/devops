@@ -30,7 +30,7 @@ header {
     color: white;
 
     height: 50px;
-    padding: 8px 180px;
+    padding: 8px 6%;
 }
 
 #header_logo > img {
@@ -48,17 +48,16 @@ main {
     flex: 1;
     display: flex;
     flex-direction: row;
-
-    padding-left: 180px;
-    padding-right: 180px;
 }
 
 nav {
     display: flex;
     flex-direction: column;
 
-    min-width: 450px;
+    width: 25%;
     padding-right: 16px;
+    padding-left: 6%;
+    overflow-y: auto;
 }
 
 nav > a {
@@ -79,9 +78,14 @@ nav > a.current:before {
     content: "\BB";
 }
 
-section {
+article {
     flex: 1;
-    padding-top: 32px;
+    overflow-y: auto;
+    padding-right: 6%;
+}
+
+article pre.highlight {
+    overflow-x: auto;
 }
 
 .index_tutorial_description {
