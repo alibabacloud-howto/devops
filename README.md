@@ -7,6 +7,7 @@ Please visit the [official website](https://aliyun.github.io/devops-tutorials/) 
 
 ## Contributions
 Please don't hesitate to contribute if you find errors or want to add some new content! The procedure is quite simple:
+
 0. Fork this repository;
 1. Create a branch with a name that matches your modification;
 2. Commit and push your changes into your forked repository;
