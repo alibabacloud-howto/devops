@@ -34,6 +34,10 @@ to [setup the command line tool 'kubectl'](https://kubernetes.io/docs/tasks/tool
 
 You should also have [Git](https://git-scm.com/) installed on your computer.
 
+Important: please download the 
+[related resources](https://github.com/aliyun/devops-tutorials/tree/master/tutorials/getting_started_with_devops_with_kubernetes)
+before moving to the next section.
+
 ## Gitlab environment
 This tutorial uses [Gitlab](https://about.gitlab.com/) to manage Git repositories and to run CI/CD pipelines. The
 community edition is free, simple to use and have all the features that we need for this demo.
