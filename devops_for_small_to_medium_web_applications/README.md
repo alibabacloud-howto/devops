@@ -12,7 +12,18 @@
    5. [User management](#user-management)
    6. [Maintenance](#maintenance)
    7. [Upgrade](#upgrade)
-  
+3. Continuous Integration
+   0. Simple application
+   1. Basic pipeline
+4. Continuous Deployment
+   0. High-availability infrastructure
+   1. Improved pipeline
+5. Maintenance
+   0. Logs centralization
+   1. Monitoring
+   2. Database schema upgrade
+6. Evolution
+
 ## Introduction
 The intended audience of this document are small independent developer teams that need to develop an maintain
 a small-to-medium web application on Alibaba Cloud. The goal is to keep things simple so that only the necessary
