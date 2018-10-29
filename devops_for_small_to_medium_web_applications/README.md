@@ -4,7 +4,15 @@
 0. [Introduction](#introduction)
 1. [Prerequisite](#prerequisite)
 2. [GitLab installation and configuration](#gitlab-installation-and-configuration)
-
+   0. [Cloud resources creation](#cloud-resources-creation)
+   1. [GitLab installation](#gitlab-installation)
+   2. [HTTPS configuration](#https-configuration)
+   3. [Mail server configuration](#mail-server-configuration)
+   4. [GitLab runner installation and configuration](#gitlab-runner-installation-and-configuration)
+   5. [User management](#user-management)
+   6. [Maintenance](#maintenance)
+   7. [Upgrade](#upgrade)
+  
 ## Introduction
 The intended audience of this document are small independent developer teams that need to develop an maintain
 a small-to-medium web application on Alibaba Cloud. The goal is to keep things simple so that only the necessary
