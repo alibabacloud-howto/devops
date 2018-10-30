@@ -14,13 +14,15 @@
    7. [Upgrade](#upgrade)
 3. Continuous Integration
    0. Simple application
-   1. Basic pipeline
+   1. Simplified GitLab flow
+   2. Basic pipeline
 4. Continuous Deployment
    0. High-availability infrastructure
-   1. Improved pipeline
+   1. Complete GitLab flow
+   2. Improved pipeline
 5. Maintenance
    0. Logs centralization
-   1. Monitoring
+   1. Monitoring and alarms
    2. Database schema upgrade
 6. Evolution
 
