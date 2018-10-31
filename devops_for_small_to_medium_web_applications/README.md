@@ -12,8 +12,8 @@
    5. [User management](#user-management)
    6. [Maintenance](#maintenance)
    7. [Upgrade](#upgrade)
-3. Continuous Integration
-   0. Simple application
+3. [Continuous Integration](#continuous-integration)
+   0. [Simple application](#simple-application)
    1. Simplified GitLab flow
    2. Basic pipeline
 4. Continuous Deployment
@@ -715,3 +715,25 @@ Another solution is to let other companies to manage this complexity for you. Th
 many [SaaS](https://en.wikipedia.org/wiki/Software_as_a_service) vendors such as
 [GitLab.com](https://about.gitlab.com/pricing/#gitlab-com) or [GitHub](https://github.com/business). Alibaba Cloud
 offers [Codepipeline](https://www.aliyun.com/product/codepipeline), but it is currently only available in Chinese.
+
+## Continuous Integration
+Now that GitLab is up and running, it is time to create a project and setup our first pipeline.
+
+### Simple application
+This tutorial is based on a simple web application written on top of
+[Spring Boot](https://spring.io/projects/spring-boot) (for the backend) and [React](https://reactjs.org/) (for the
+frontend).
+
+The application consists in a todo list where a user can add or remove items. The goal is to have a simple
+[3-tier architecture](https://en.wikipedia.org/wiki/Multitier_architecture#Three-tier_architecture) with enough
+features to allow us to explore the most important concepts of DevOps:
+* Organization of frontend and backend code;
+* Use of stateless
+* Database and later schema update
+* Automatic compilation
+* Packaging
+* Code quality analysis
+* Deployment in production in HA configuration
+
+TODO More pro: https://spring.io/guides/tutorials/react-and-spring-data-rest/
+TODO IDE = IntelliJ
