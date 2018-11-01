@@ -1,0 +1,56 @@
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+image: maven:3.5.4-jdk-8
+
+variables:
+  DOCKER_REGISTRY_IMAGE_URL: "registry-intl.ap-southeast-1.aliyuncs.com/cicd-k8s-tutorial/simple-rest-service"
+  DOCKER_REGISTRY_USERNAME: "yourUsername@service.aliyun.com"
+  DOCKER_REGISTRY_PASSWORD: "yourPassword"
+  K8S_MASTER_PUBLIC_IP: "161.117.97.241"
+  K8S_PASSWORD: "yourPassword"
+  MAVEN_OPTS: "-Dmaven.repo.local=./.m2/repository"
+
+cache:
+  paths:
+    - ./.m2/repository
+
+stages:
+  - build
+  - package
+  - deploy
+
+build:
+  stage: build
+  script: "mvn package"
+  artifacts:
+    paths:
+      - target
+
+package:
+  stage: package
+  dependencies:
+    - build
+  script: "echo $DOCKER_REGISTRY_IMAGE_URL && ls -l target && mvn jib:build -Dimage=$DOCKER_REGISTRY_IMAGE_URL -Djib.to.auth.username=$DOCKER_REGISTRY_USERNAME -Djib.to.auth.password=$DOCKER_REGISTRY_PASSWORD"
+
+production:
+  image: roffe/kubectl:latest
+  stage: deploy
+  script:
+  - apk add --update --no-cache openssh sshpass
+  - mkdir -p $HOME/.kube
+  - sshpass -p "$K8S_PASSWORD" scp -o StrictHostKeyChecking=no root@$K8S_MASTER_PUBLIC_IP:/etc/kubernetes/kube.conf $HOME/.kube/config
+  - cat deployment.yml | sed "s|\$DOCKER_REGISTRY_IMAGE_URL|$DOCKER_REGISTRY_IMAGE_URL|g" | kubectl apply -f -
+  only:
+  - master

@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ page.title }}</title>
+    {% include base.html %}
+    <link rel="stylesheet" href="{{base}}/assets/css/default.css">
+    <link rel="stylesheet" href="{{base}}/assets/css/jekyll-github.css">
+</head>
+<body>
+<header>
+    <a href="https://www.alibabacloud.com/" target="_blank" id="header_logo">
+        <img src="{{base}}/assets/images/alibabacloud_logo.png" alt="Alibaba Cloud" class="logo"/>
+    </a>
+    <div id="header_title">
+        DevOps tutorials
+    </div>
+</header>
+<main>
+    <nav>
+        <h1>Tutorials</h1>
+        <a href="{{base}}/index" {% if page.url== '/' %}class="current" {% endif %}>
+        Home
+        </a>
+        {% for tutorial in site.data.tutorials %}
+        {% assign tutorialLink = '/' | append: tutorial.link %}
+        <a href="{{base}}/{{ tutorial.link }}" {% if page.url== tutorialLink %}class="current" {% endif %}>
+            {{ tutorial.name }}
+        </a>
+        {% endfor %}
+    </nav>
+    <article>{{ content }}</article>
+</main>
+</body>
+</html>
