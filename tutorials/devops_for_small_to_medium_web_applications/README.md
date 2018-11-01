@@ -729,14 +729,47 @@ frontend).
 
 The application consists in a todo list where a user can add or remove items. The goal is to have a simple
 [3-tier architecture](https://en.wikipedia.org/wiki/Multitier_architecture#Three-tier_architecture) with enough
-features to allow us to explore the most important concepts of DevOps:
-* Organization of frontend and backend code;
-* Use of stateless
-* Database and later schema update
-* Automatic compilation
-* Packaging
-* Code quality analysis
-* Deployment in production in HA configuration
+features that allow us to explore important concepts:
+* The file organization shows a way to combine backend and frontend code into a single module (to keep it simple).
+* The backend is [stateless](https://nordicapis.com/defining-stateful-vs-stateless-web-services/), which means that
+  it doesn't store any data (e.g. no shared variable in the code); instead, the data is saved in a database. This
+  architecture is particularly useful
+  for [horizontal scaling](https://en.wikipedia.org/wiki/Scalability#Horizontal_and_vertical_scaling).
+* Because a [relational database](https://en.wikipedia.org/wiki/Relational_database_management_system) is involved,
+  this project demonstrate how to use [Flyway](https://flywaydb.org/) to help to upgrade the schema when the
+  application evolve.
+* The build process involves [Npm](https://www.npmjs.com/), [Babel](https://babeljs.io/),
+  [Webpack](https://webpack.js.org/) and [Maven](https://maven.apache.org/) to compile and package the application for
+  production.
+* Code quality is achieved thanks to [SonarQube](https://www.sonarqube.org/), a tool that can detect bugs in the code
+  and help us to maintain the project over time.
+
+Let's start by creating a project on GitLab:
+* Open GitLab in your web browser (the URL must be like https://gitlab.my-sample-domain.xyz/);
+* Click on the "New..." item in the top menu (with a '+' icon) and select "New project";
+* Fill the new form with the following information:
+  * Project name = todolist
+  * Project slug = todolist
+  * Visibility Level = Private
+* Click on the "Create project" button.
+
+We now have a project but we cannot download it on our computer yet; for that we need to generate and register a
+SSH certificate:
+* In your GitLab web browser tab, click on your avatar (top-right of the page) and select "Settings";
+* Click on the "SSH Keys" item in the left menu;
+* Open a terminal and type the following commands:
+  ```bash
+  # Generate a SSH certificate (set the email address you set in your GitLab profile)
+  ssh-keygen -o -t rsa -C "your.email@example.com" -b 4096
+
+  # Display the public key
+  cat ~/.ssh/id_rsa.pub
+  ```
+* Copy the result of the `cat` command and paste in the "Key" field (in the GitLab web browser tab);
+* 
+
+
+
 
 TODO More pro: https://spring.io/guides/tutorials/react-and-spring-data-rest/
 TODO IDE = IntelliJ
