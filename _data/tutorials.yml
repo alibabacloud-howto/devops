@@ -1,3 +1,9 @@
+- name: DevOps for small-to-medium web applications
+  link: tutorials/devops_for_small_to_medium_web_applications/README.html
+  description: >-
+    This tutorial describes all the steps in order to develop a small-to-medium web application and deploy it
+    automatically in Alibaba Cloud.
+  concepts: CI/CD, Git, GitLab, Docker, Java, Maven, Spring Boot, React
 - name: Getting started with CI/CD and Kubernetes
   link: tutorials/getting_started_with_devops_with_kubernetes/README.html
   description: >-

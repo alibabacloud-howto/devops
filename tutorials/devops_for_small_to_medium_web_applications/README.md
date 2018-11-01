@@ -1,3 +1,6 @@
+---
+layout: default
+---
 # DevOps for small-to-medium web applications
 
 ## Summary
