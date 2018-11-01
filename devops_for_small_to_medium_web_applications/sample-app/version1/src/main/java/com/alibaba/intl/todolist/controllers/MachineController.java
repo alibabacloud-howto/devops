@@ -17,6 +17,7 @@ import com.alibaba.intl.todolist.model.Machine;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -35,6 +36,9 @@ import java.nio.charset.Charset;
 public class MachineController {
     private static final Logger LOGGER = LoggerFactory.getLogger(MachineController.class);
 
+    @Value("${ecs.instanceIdUrl}")
+    private String instanceIdUrl;
+
     @RequestMapping("/machine")
     public Machine find() {
         LOGGER.debug("Retrieve information about the current machine.");
@@ -42,7 +46,7 @@ public class MachineController {
         // Retrieve the instance ID from the ECS REST API
         String instanceId = "unknown";
         try {
-            URL url = new URL("http://100.100.100.200/latest/meta-data/instance-id");
+            URL url = new URL(instanceIdUrl);
             URLConnection urlConnection = url.openConnection();
             urlConnection.setConnectTimeout(1000);
             urlConnection.setReadTimeout(1000);

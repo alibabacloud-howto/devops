@@ -37,6 +37,8 @@ public abstract class AbstractTest {
         System.setProperty("spring.datasource.url", "jdbc:h2:mem:");
         System.setProperty("spring.datasource.username", "sa");
         System.setProperty("spring.datasource.password", "");
+
+        System.setProperty("ecs.instanceIdUrl", "http://localhost/dummy");
     }
 
 }
