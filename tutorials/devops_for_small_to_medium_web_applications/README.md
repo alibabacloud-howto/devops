@@ -888,10 +888,31 @@ application schema, you cannot modify existing SQL scripts from this folder, ins
 with a higher prefix number. Like this, next time you run `mvn flyway:migrate`, Flyway will be clever enough to only
 run the new scripts.
 
-TODO launch the app with Maven
+Have a look at the backend configuration file "src/main/resources/application.properties" and check that the DB
+configuration corresponds to your installation:
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/todolist
+spring.datasource.username=todolist
+spring.datasource.password=P@ssw0rd
+```
+If you modified this file you need to re-run `mvn clean package`.
 
-TODO advice:
-Download and install [IntelliJ IDEA](https://www.jetbrains.com/idea/)
-[IDE](https://en.wikipedia.org/wiki/Integrated_development_environment) (the ultimate edition is mandatory for frontend
-development, you can evaluate it for free for 30 days).
---> TODO npm for live change
+You can now launch the application locally with the following command:
+```bash
+mvn spring-boot:run -Ddatabase.url=jdbc:mysql://localhost:3306/todolist -Ddatabase.user=todolist -Ddatabase.password=P@ssw0rd
+```
+If everything went well, the application should print several lines of logs in the console. Look at the two last lines:
+```
+2018-11-02 13:56:18.139  INFO 87329 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 8080 (http) with context path ''
+2018-11-02 13:56:18.145  INFO 87329 --- [main] com.alibaba.intl.todolist.Application    : Started Application in 5.305 seconds (JVM running for 17.412)
+```
+
+Open a new tab in your web browser and open the url "http://localhost:8080". You should normally get something like this:
+
+![Sample application version 1](images/sample-application-v1.png)
+
+Note: you can add new tasks by filling a description and clicking on the "Add" button.
+
+Congratulation if you managed to get the application up and running! The source code has been written with the
+[IntelliJ IDEA](https://www.jetbrains.com/idea/) [IDE](https://en.wikipedia.org/wiki/Integrated_development_environment),
+(the ultimate edition is mandatory for frontend development, you can evaluate it for free for 30 days).
