@@ -20,15 +20,18 @@ layout: default
    1. [GitLab project creation](#gitlab-project-creation)
    2. [Run the application locally](#run-the-application-locally)
    3. [Commit and first CI pipeline](#commit-and-first-ci-pipeline)
-4. Continuous Deployment
+4. [Code quality](#code-quality)
+   0. [SonarQube installation and configuration](#sonarqube-installation-and-configuration)
+   1. New code analysis pipeline stage
+5. Continuous Deployment
    0. High-availability infrastructure
    1. GitLab flow
    2. Improved pipeline
-5. Maintenance
+6. Maintenance
    0. Logs centralization
    1. Monitoring and alarms
    2. Database schema upgrade
-6. Evolution
+7. Evolution
 
 ## Introduction
 The intended audience of this document are small independent developer teams that need to develop an maintain
@@ -1004,3 +1007,15 @@ The "build" block is the most important one: it instructs the GitLab runner to e
 compile, run the tests and package the application. The "artifacts" block instructs GitLab to save the generated
 ".war" file.
 
+Note: even if this pipeline is simple, it is already quite useful for a team since it can immediately inform the team
+that somebody committed something bad (for example he missed a file, or some test fail unexpectedly). GitLab
+automatically sends an email to the person who made the mistake: this rapid feedback can save us a lot of time
+because the error cause has a great chance to be located in the code that we just modified.
+
+## Code quality
+Before we continue on the way to production, it is important to add a stage in our pipeline to improve the
+code quality of our application. In this tutorial we are introducing [SonarQube](https://www.sonarqube.org/),
+a tool that can help us to find bugs before they arrive in production, and help us to manage
+the [technical debt](https://en.wikipedia.org/wiki/Technical_debt).
+
+### SonarQube installation and configuration
