@@ -19,11 +19,10 @@ layout: default
    0. [Simple application](#simple-application)
    1. [GitLab project creation](#gitlab-project-creation)
    2. [Run the application locally](#run-the-application-locally)
-   3. Simplified GitLab flow
-   4. Basic pipeline
+   3. [Commit and first CI pipeline](#commit-and-first-ci-pipeline)
 4. Continuous Deployment
    0. High-availability infrastructure
-   1. Complete GitLab flow
+   1. GitLab flow
    2. Improved pipeline
 5. Maintenance
    0. Logs centralization
@@ -570,6 +569,7 @@ Execute the following commands in this "web-terminal":
 curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash
 
 # Add a new repository for apt-get for Docker
+apt-get install software-properties-common
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 add-apt-repository \
    "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
@@ -801,6 +801,7 @@ ls -la
 Copy all the files from the folder "sample-app/version1/*" of this tutorial into "~/projects/todolist". You should
 have a directory with the following top files:
 * .git              - Folder containing information for git.
+* .gitignore        - List of files to ignore for Git.
 * .gitlab-ci.yml    - GitLab CI pipeline configuration (more information about this file later).
 * package.json      - [Npm](https://www.npmjs.com/) configuration for the frontend: it declares dependencies such as
   [React](https://reactjs.org/), [Babel](https://babeljs.io/) and [Webpack](https://webpack.js.org/).
@@ -916,3 +917,90 @@ Note: you can add new tasks by filling a description and clicking on the "Add" b
 Congratulation if you managed to get the application up and running! The source code has been written with the
 [IntelliJ IDEA](https://www.jetbrains.com/idea/) [IDE](https://en.wikipedia.org/wiki/Integrated_development_environment),
 (the ultimate edition is mandatory for frontend development, you can evaluate it for free for 30 days).
+
+### Commit and first CI pipeline
+It is now time to save the project in the git repository. Please enter the following command in your terminal:
+```bash
+# Go to the project folder
+cd ~/projects/todolist
+
+# Check files to commit
+git status
+```
+The last command should print something like this:
+```
+On branch master
+
+No commits yet
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+
+	.gitignore
+	.gitlab-ci.yml
+	package.json
+	pom.xml
+	src/
+	webpack.config.js
+```
+Add all these files and commit them:
+```bash
+# Add the files
+git add .gitignore .gitlab-ci.yml package.json pom.xml src/ webpack.config.js
+
+# Commit the files and sent a comment
+git commit -m "Initial commit."
+
+# Push the commit to the GitLab server
+git push origin master
+```
+
+Pushing your code to GitLab triggered something interesting:
+* Open GitLab in your web browser (the URL must be like https://gitlab.my-sample-domain.xyz/);
+* Click on the "Projects" item in the top menu and select the "Your projects";
+* Click on the "todolist" project; You should be able to see your files;
+* Click in the "CI / CD" item in the left menu and select "Pipelines";
+
+You should see something like this:
+
+![First pipeline](images/gitlab-first-pipeline.png)
+
+Clicking on the "Artifacts" button on the left allows you to download the generated ".war" file containing your
+ready-for-production application.
+
+Clicking on the icon in the "Stages" column and then selecting "build" allows you to see the commands and logs used
+to compile and package the application.
+
+This pipeline is triggered when somebody pushes code to the server. It is configured by the ".gitlab-ci.yml" file:
+```yaml
+image: maven:3.5.4-jdk-8
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=./.m2/repository"
+
+cache:
+  paths:
+    - ./.m2/repository
+
+stages:
+  - build
+
+build:
+  stage: build
+  script: "mvn package"
+  artifacts:
+    paths:
+      - target/*.war
+```
+The first line "image: maven:3.5.4-jdk-8" defines the Docker image used to execute the build command (as you can see,
+using Docker relieves us to setup the JDK 8 and Maven on the GitLab runner manually).
+
+The "MAVEN_OPTS" variable and the "cache" block are an optimization: because Maven takes a lot of time to download
+dependencies, these definitions allow us to re-use these dependencies among pipelines.
+
+The "stages" block defines only one stage "build", we will add new ones later in this tutorial.
+
+The "build" block is the most important one: it instructs the GitLab runner to execute "mvn package" in order to
+compile, run the tests and package the application. The "artifacts" block instructs GitLab to save the generated
+".war" file.
+
