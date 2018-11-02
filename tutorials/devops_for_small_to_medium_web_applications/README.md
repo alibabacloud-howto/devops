@@ -17,8 +17,10 @@ layout: default
    7. [Upgrade](#upgrade)
 3. [Continuous Integration](#continuous-integration)
    0. [Simple application](#simple-application)
-   1. Simplified GitLab flow
-   2. Basic pipeline
+   1. [GitLab project creation](#gitlab-project-creation)
+   2. [Run the application locally](#run-the-application-locally)
+   3. Simplified GitLab flow
+   4. Basic pipeline
 4. Continuous Deployment
    0. High-availability infrastructure
    1. Complete GitLab flow
@@ -61,6 +63,10 @@ developed in `feature` branches created from the `master` and then merged into i
 is stable, it is then merged into a `production` branch that must always be in sync with the production environment.
 
 Finally, make sure you [have an Alibaba Cloud account](https://www.alibabacloud.com/help/doc-detail/50482.htm).
+
+Important: please download the 
+[related resources](https://github.com/aliyun/devops-tutorials/tree/master/tutorials/devops_for_small_to_medium_web_applications)
+before moving to the next section.
 
 ## GitLab installation and configuration
 [GitLab CE edition](https://about.gitlab.com/) is a free open-source tool that will help us to host Git repositories
@@ -744,6 +750,7 @@ features that allow us to explore important concepts:
 * Code quality is achieved thanks to [SonarQube](https://www.sonarqube.org/), a tool that can detect bugs in the code
   and help us to maintain the project over time.
 
+### GitLab project creation
 Let's start by creating a project on GitLab:
 * Open GitLab in your web browser (the URL must be like https://gitlab.my-sample-domain.xyz/);
 * Click on the "New..." item in the top menu (with a '+' icon) and select "New project";
@@ -754,23 +761,137 @@ Let's start by creating a project on GitLab:
 * Click on the "Create project" button.
 
 We now have a project but we cannot download it on our computer yet; for that we need to generate and register a
-SSH certificate:
+SSH key:
 * In your GitLab web browser tab, click on your avatar (top-right of the page) and select "Settings";
 * Click on the "SSH Keys" item in the left menu;
 * Open a terminal and type the following commands:
   ```bash
   # Generate a SSH certificate (set the email address you set in your GitLab profile)
-  ssh-keygen -o -t rsa -C "your.email@example.com" -b 4096
+  ssh-keygen -o -t rsa -C "john.doe@your-company.com" -b 4096
 
   # Display the public key
   cat ~/.ssh/id_rsa.pub
   ```
 * Copy the result of the `cat` command and paste in the "Key" field (in the GitLab web browser tab);
-* 
+* The "Title" field should be automatically filled with your email address; The page should look like this:
+  ![GitLab add SSH key](images/gitlab-add-ssh-key.png)
+* Click on the "Add key" button in order to register your SSH key.
 
+You can now configure git and [clone](https://git-scm.com/docs/git-clone) the project on your computer. Enter the
+following commands in your terminal:
+```bash
+# Set your real name
+git config --global user.name "John Doe"
 
+# Set the same email address as the one you set in your GitLab profile
+git config --global user.email "john.doe@your-company.com"
 
+# Create a directory for your projects
+mkdir ~/projects
+cd ~/projects
 
-TODO More pro: https://spring.io/guides/tutorials/react-and-spring-data-rest/
-TODO IDE = IntelliJ
-TODO = test = in-memory db
+# Clone the empty project on your computer (set your GitLab domain name and username)
+git clone git@gitlab.my-sample-domain.xyz:johndoe/todolist.git
+
+# Change directory and check the ".git" folder is present
+cd todolist
+ls -la
+```
+
+Copy all the files from the folder "sample-app/version1/*" of this tutorial into "~/projects/todolist". You should
+have a directory with the following top files:
+* .git              - Folder containing information for git.
+* .gitlab-ci.yml    - GitLab CI pipeline configuration (more information about this file later).
+* package.json      - [Npm](https://www.npmjs.com/) configuration for the frontend: it declares dependencies such as
+  [React](https://reactjs.org/), [Babel](https://babeljs.io/) and [Webpack](https://webpack.js.org/).
+* webpack.config.js - [Webpack](https://webpack.js.org/) configuration for the frontend: it contains information about
+  how to [transpile](https://scotch.io/tutorials/javascript-transpilers-what-they-are-why-we-need-them) our
+  [JSX](https://reactjs.org/docs/introducing-jsx.html) code into standard JavaScript supported by all modern
+  web browsers. It also describes how to package the frontend code and place it into a folder where
+  [Spring Boot](https://spring.io/projects/spring-boot) can pick it and serve it via HTTP.
+* pom.xml           - [Maven](https://maven.apache.org/) configuration for the backend: it declares dependencies,
+  how to compile the code, how to run the tests, and how to package the complete application.
+* src               - Source code of the application.
+
+The "src" folder is organized like this:
+* src/main/java - Backend code in Java. The entry-point is "com/alibaba/intl/todolist/Application.java".
+* src/main/js - Frontend code. The entry-point is "app.js".
+* src/main/resources/application.properties - Backend configuration (e.g. database url).
+* src/main/resources/static - Frontend code (HTML, CSS and JavaScript). The "built" folder is generated by Webpack.
+* src/main/resources/db/migration - Database scripts for [Flyway](https://flywaydb.org/) (more on this later).
+* src/test/java - Backend tests.
+* src/test/resources - Backend tests configuration.
+
+### Run the application locally
+Install the [JDK 8](https://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html) and
+[Maven](https://maven.apache.org/) on your computer, and build your application with the following command:
+```bash
+mvn clean package
+```
+This command should end with a "BUILD SUCCESS" message: it compile, run the tests and package the application.
+
+Notes:
+* The application source code organization is based on
+  [this tutorial](https://spring.io/guides/tutorials/react-and-spring-data-rest/). You can read this document if you
+  are interested in [HATEOAS](https://en.wikipedia.org/wiki/HATEOAS),
+  [WebSockets](https://en.wikipedia.org/wiki/WebSocket) and
+  [Spring Security](https://spring.io/projects/spring-security).
+* Although the application needs a database, the tests pass because they use [H2](http://www.h2database.com/), an
+  in-memory database.
+
+The next step is to setup a database locally:
+* Download and install [MySQL Community Server v5.7](https://dev.mysql.com/downloads/mysql/5.7.html#downloads);
+  note that it will normally give you a temporary root password.
+* MySQL should have installed the [MySQL Command-Line Tool](https://dev.mysql.com/doc/refman/8.0/en/mysql.html). You
+  may need to configure your PATH environment variable if the `mysql` command is not available on your terminal. On
+  Mac OSX you can do the following:
+  ```bash
+  # Add the MySQL tools into the PATH variable
+  echo 'export PATH=/usr/local/mysql/bin:$PATH' >> ~/.bash_profile
+
+  # Reload .bash_profile
+  . ~/.bash_profile
+  ```
+* Launch MySQL on your computer and connect to it with your terminal:
+  ```bash
+  # Connect to the database (use the password you received during the installation)
+  mysql -u root -p
+  ```
+* The command above should display a prompt. You can now configure your database:
+  ```mysql
+  -- Change the root password if you never did that before on this database
+  ALTER USER 'root'@'localhost' IDENTIFIED BY 'YouNewRootPassword';
+
+  -- Create a database for our project
+  CREATE DATABASE todolist;
+
+  -- Create a user for our project and grant him the rights
+  CREATE USER 'todolist'@'localhost' IDENTIFIED BY 'P@ssw0rd';
+  GRANT ALL PRIVILEGES ON todolist.* TO 'todolist'@'localhost';
+
+  -- Exit
+  QUIT;
+  ```
+
+Now that we have a database up and running, we need to create a [schema](https://en.wikipedia.org/wiki/Database_schema):
+Enter the following commands in your terminal:
+```bash
+# Go to the project folder
+cd ~/projects/todolist
+
+# Use Flyway to run the DB scripts
+mvn flyway:migrate -Ddatabase.url=jdbc:mysql://localhost:3306/todolist -Ddatabase.user=todolist -Ddatabase.password=P@ssw0rd
+```
+Note: [Flyway](https://flywaydb.org/) creates a table "flyway_schema_history" that contains the scripts from
+"src/main/resources/db/migration" that have been executed successfully. During development when you upgrade your
+application schema, you cannot modify existing SQL scripts from this folder, instead you need to create a new script
+with a higher prefix number. Like this, next time you run `mvn flyway:migrate`, Flyway will be clever enough to only
+run the new scripts.
+
+TODO launch the app with Maven
+
+TODO advice:
+Download and install [IntelliJ IDEA](https://www.jetbrains.com/idea/)
+[IDE](https://en.wikipedia.org/wiki/Integrated_development_environment) (the ultimate edition is mandatory for frontend
+development, you can evaluate it for free for 30 days).
+--> TODO npm for live change

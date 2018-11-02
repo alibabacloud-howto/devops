@@ -26,6 +26,8 @@ limitations under the License.
         <version>2.0.5.RELEASE</version>
     </parent>
 
+    <packaging>war</packaging>
+
     <properties>
         <java.version>1.8</java.version>
         <commons-io.version>2.6</commons-io.version>
