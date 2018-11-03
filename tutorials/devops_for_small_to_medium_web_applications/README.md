@@ -1019,3 +1019,106 @@ a tool that can help us to find bugs before they arrive in production, and help 
 the [technical debt](https://en.wikipedia.org/wiki/Technical_debt).
 
 ### SonarQube installation and configuration
+Let's create an ECS instance with [SonarQube](https://www.sonarqube.org/):
+* Go to the [ECS console](https://ecs.console.aliyun.com/);
+* Click on the "Create Instance" button;
+* If needed, elect "Advanced Purchase" (also named "Custom");
+* Fill the wizard with the following information:
+  * Billing Method = Pay-As-You-Go
+  * Region = the same region and availability zone as your GitLab server
+  * Instance Type = filter by vCPU = 2, Memory = 4 GiB, Current Generation tab, and select a remaining type
+    such as "ecs.n4.large"
+  * Image = Ubuntu 16.04 64bit
+  * System Disk = Ultra Disk 40 GiB
+  * Network = VPC, select the same VPC and VSwitch as the GitLab server
+  * Do NOT assign a public IP (we will create an EIP instead, which is more flexible)
+  * Security Group = select the group "devops-simple-app-security-group"
+  * Log on Credentials = select "Password" and choose one
+  * Instance Name = devops-simple-app-sonar
+  * Host = devops-simple-app-sonar
+  * Read and accept the terms of service
+* Finish the instance creation by clicking on the "Create Instance" button;
+* Go back to the [ECS console](https://ecs.console.aliyun.com/), select the "Instances" item on the left menu and
+  choose your region on top the screen; you should be able to see your new instance;
+* Click on the ["EIP" item](https://vpcnext.console.aliyun.com/eip) on the left menu;
+* On the new page, click on "Create EIP";
+* Fill the wizard with the following information:
+  * Region = the region where you have created you ECS
+  * Max Bandwidth = 1 Mbps
+  * Quantity = 1
+* Click on "Buy Now", select the agreement of service and click on "Activate";
+* Go back to the [EIP console](https://vpcnext.console.aliyun.com/eip) and check your new EIP;
+* Next to you new EIP, click on "Bind";
+* In the new form, select:
+  * Instance Type = ECS Instance
+  * ECS Instance = devops-simple-app-sonar/i-generatedstring
+* Click on "OK" to bind the EIP to you ECS instance;
+* Copy the IP Address of your EIP (it should be something like 47.74.253.23).
+
+The ECS instance is ready, let's register a sub-domain for this machine:
+* Go to the [Domain console](https://dc.console.aliyun.com/);
+* On the row corresponding to your domain (for example "my-sample-domain.xyz"), click on "Resolve";
+* Click on "Add Record";
+* Fill the new form with the following information:
+  * Type = A- IPV4 address
+  * Host = sonar
+  * ISP Line = Outside mainland China
+  * Value = The EIP IP Address (for example 47.74.253.23)
+  * TTL = 10 minute(s)
+* Click on "OK" to add the record.
+
+SonarQube requires a database, let's create a
+[PostgreSQL RDS instance](https://www.alibabacloud.com/product/apsaradb-for-rds-postgresql):
+* Go to the [ApsaraDB for RDS console](https://rdsnext.console.aliyun.com);
+* Click on the "Create Instance" button;
+* Fill the form with the following information:
+  * Select "Pay-As-You-Go"
+  * Region = the same as your ECS instance
+  * DB Engine = PostgreSQL
+  * Version = 9.4
+  * Edition = High-availability
+  * Zone = the same as your ECS instance
+  * Network type = VPC, select the same VPC and availability zone as your ECS instance
+  * Type = 2 cores, 4 GB (type rds.pg.s2.large)
+  * Capacity = 20GB
+  * Quantity = 1
+* Click on the "Buy Now" button, accept the Product Terms of Service, Service Level Notice and Terms of Use,
+  and click on "Pay Now";
+* Go back to the [ApsaraDB for RDS console](https://rdsnext.console.aliyun.com) and wait for the RDS instance to start
+  (it can take few minutes);
+* Set a name for your RDS instance by moving your mouse cursor over it and clicking on the "pen" icon; set the
+  name "devops-simple-app-sonar-rds" and confirm;
+* Click on the instance id;
+* Click on the "Set Whitelist" link in the "Basic Information > Intranet Address" section;
+* Click on the "Add a Whitelist Group" button;
+* Click on the "Upload ECS Intranet IP Address" link;
+* In the "Whitelist:" field, move you mouse cursor on top of the top IP address;
+* A bubble should appear; Move you mouse cursor on top of the "Instance Name" bubble field;
+* If the instance name is "devops-simple-app-sonar", select this IP address; repeat on the next IP address;
+* After you select exactly one IP address, set the group name "devops_simple_app_sonar_wlg";
+* Click on "OK" to close the popup;
+
+Note: the whitelist is a security feature: only the ECS instances in this list can access the database.
+
+Let's now create a database account and collect connection information:
+* Click on the "Accounts" item in the left menu;
+* Click on the "Create Initial Account" button;
+* Fill the form with the following information:
+  * Database Account = sonarqube
+  * Password = YouS0narP@ssword
+  * Re-enter Password = YouS0narP@ssword
+* Click on "OK" to create the account;
+* Click on the "Connection Options" item in the left menu, and save the "Intranet Address" in the
+  "Connection Information" section (it should be something
+  like "rm-gs5wm687b2e3uc770.pgsql.singapore.rds.aliyuncs.com");
+
+We can now install SonarQube. Open a terminal and enter the following commands:
+```bash
+# Connect to the ECS instance
+ssh root@sonar.my-sample-domain.xyz # Use the password you set when you have created the ECS instance
+
+# Update the machine
+apt-get update
+
+
+```
