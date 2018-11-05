@@ -1119,6 +1119,95 @@ ssh root@sonar.my-sample-domain.xyz # Use the password you set when you have cre
 
 # Update the machine
 apt-get update
+apt-get upgrade
 
+# Install tools
+apt-get install unzip default-jdk postgresql-client
 
+# Connect to the database (use the "Intranet Address" you saved in the paragraph above)
+psql postgresql://rm-gs5wm687b2e3uc770.pgsql.singapore.rds.aliyuncs.com:3433/postgres -U sonarqube
 ```
+The new command line allows you to configure the PostgreSQL database:
+```postgresql
+-- Create a database
+CREATE DATABASE sonarqube;
+
+-- Quit
+\q
+```
+Back to Bash, continue the installation:
+```bash
+# Create a Linux user for SonarQube
+adduser --system --no-create-home --group --disabled-login sonarqube
+
+# Create directories where we will put SonarQube files
+mkdir /opt/sonarqube
+mkdir -p /var/sonarqube/data
+mkdir -p /var/sonarqube/temp
+
+# Download and unzip SonarQube (LTV version)
+cd /opt/sonarqube
+wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-6.7.5.zip # URL from https://www.sonarqube.org/downloads/
+unzip sonarqube-6.7.5.zip
+rm sonarqube-6.7.5.zip
+
+# Change the SonarQube file owner
+chown -R sonarqube:sonarqube /opt/sonarqube
+chown -R sonarqube:sonarqube /var/sonarqube
+
+# Configure SonarQube
+nano sonarqube-6.7.5/conf/sonar.properties
+```
+In the configuration file:
+* Scroll to "# User credentials.", uncomment and set the properties:
+  * sonar.jdbc.username=sonarqube
+  * sonar.jdbc.password=YouS0narP@ssword
+* Scroll to "#----- PostgreSQL 8.x or greater", uncomment and set the property:
+  * sonar.jdbc.url=jdbc:postgresql://rm-gs5wm687b2e3uc770.pgsql.singapore.rds.aliyuncs.com:3433/sonarqube # Set the "Intranet Address"
+* Scroll to "# WEB SERVER", uncomment and set the property:
+  * sonar.web.javaAdditionalOpts=-server
+* Scroll to "# OTHERS", uncomment and set the properties:
+  * sonar.path.data=/var/sonarqube/data
+  * sonar.path.temp=/var/sonarqube/temp
+  
+Save and quit by pressing CTRL+X. Back to Bash, continue the installation:
+```bash
+# Create a service file for Systemd
+nano /etc/systemd/system/sonarqube.service
+```
+Copy the following content in this new file (set the right path in "ExecStart" and "ExecStop"):
+```
+[Unit]
+Description=SonarQube service
+After=syslog.target network.target
+
+[Service]
+Type=forking
+
+ExecStart=/opt/sonarqube/sonarqube-6.7.5/bin/linux-x86-64/sonar.sh start
+ExecStop=/opt/sonarqube/sonarqube-6.7.5/bin/linux-x86-64/sonar.sh stop
+
+User=sonarqube
+Group=sonarqube
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+Save and quit by pressing CTRL+X. Back to Bash, continue the installation:
+```bash
+# Start SonarQube
+systemctl start sonarqube.service
+
+# Wait few seconds and check it worked (the text must finish with "SonarQube is up")
+cat sonarqube-6.7.5/logs/sonar.log
+
+# You can also check the following command returns some HTML
+curl http://localhost:9000
+
+# Configure SonarQube to automatically start when the machine reboot
+systemctl enable sonarqube.service
+```
+
+Now that SonarQube is installed, we need to configure a [reverse proxy](https://en.wikipedia.org/wiki/Reverse_proxy) in
+order to let users to connect to SonarQube via HTTPS.
