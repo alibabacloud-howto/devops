@@ -1105,8 +1105,8 @@ Let's now create a database account and collect connection information:
 * Click on the "Create Initial Account" button;
 * Fill the form with the following information:
   * Database Account = sonarqube
-  * Password = YouS0narP@ssword
-  * Re-enter Password = YouS0narP@ssword
+  * Password = YourS0narP@ssword
+  * Re-enter Password = YourS0narP@ssword
 * Click on "OK" to create the account;
 * Click on the "Connection Options" item in the left menu, and save the "Intranet Address" in the
   "Connection Information" section (it should be something
@@ -1161,7 +1161,7 @@ nano sonarqube-6.7.5/conf/sonar.properties
 In the configuration file:
 * Scroll to "# User credentials.", uncomment and set the properties:
   * sonar.jdbc.username=sonarqube
-  * sonar.jdbc.password=YouS0narP@ssword
+  * sonar.jdbc.password=YourS0narP@ssword
 * Scroll to "#----- PostgreSQL 8.x or greater", uncomment and set the property:
   * sonar.jdbc.url=jdbc:postgresql://rm-gs5wm687b2e3uc770.pgsql.singapore.rds.aliyuncs.com:3433/sonarqube # Set the "Intranet Address"
 * Scroll to "# WEB SERVER", uncomment and set the property:
@@ -1209,5 +1209,98 @@ curl http://localhost:9000
 systemctl enable sonarqube.service
 ```
 
-Now that SonarQube is installed, we need to configure a [reverse proxy](https://en.wikipedia.org/wiki/Reverse_proxy) in
+Now that SonarQube is started, we need to configure a [reverse proxy](https://en.wikipedia.org/wiki/Reverse_proxy) in
 order to let users to connect to SonarQube via HTTPS.
+Enter the following commands in your terminal:
+```bash
+# Install Nginx and Let's Encrypt tooling
+apt-get install software-properties-common
+add-apt-repository ppa:certbot/certbot
+apt-get update
+apt-get install nginx python-certbot-nginx
+
+# Configure Nginx to act as a reverse proxy for SonarQube
+nano /etc/nginx/sites-available/sonarqube
+```
+Copy the following content in the new file (set the correct "server_name" according to your domain):
+```
+server {
+    listen 80;
+    server_name sonar.my-sample-domain.xyz;
+
+    location / {
+        proxy_pass http://127.0.0.1:9000;
+    }
+}
+```
+Back to Bash, continue the installation:
+```bash
+# Enable the new configuration file
+ln -s /etc/nginx/sites-available/sonarqube /etc/nginx/sites-enabled/sonarqube
+
+# Disable the default Nginx configuration
+rm /etc/nginx/sites-enabled/default
+
+# Check the configuration syntax
+nginx -t
+
+# Start Nginx
+systemctl start nginx
+```
+
+In order to check if the installation is successful, open a new web browser tab to "http://sonar.my-sample-domain.xyz/"
+(adapt the URL for your domain). If everything went well, you should see something like this:
+
+![First SonarQube screen](images/sonarqube-first-screen.png)
+
+We now need to configure HTTPS. Enter the following commands in your terminal:
+```bash
+# Install the Let's Encrypt certificate (adapt for your domain)
+certbot --nginx -d sonar.my-sample-domain.xyz
+# Note: set your email address and accept the HTTP-to-HTTPS redirection
+
+# The certificate automatic will be automatically renewed. If you want, you can check the Cron configuration:
+nano /etc/cron.d/certbot
+
+# Check the renewal process with the following command
+certbot renew --dry-run
+# The logs should contain "Congratulations, all renewals succeeded" with your domain name (e.g. sonar.my-sample-domain.xyz)
+
+# Restart Nginx
+systemctl restart nginx
+
+# Configure Nginx to automatically start when the machine reboot
+systemctl enable nginx
+```
+Refresh your web browser tab with SonarQube and check the URL: the protocol HTTPS must replace HTTP.
+
+We now need to change the administrator password:
+* In your web browser tab with SonarQube (URL like https://sonar.my-sample-domain.xyz/);
+* Click on the "Log in" link on the top-right of the page;
+* Fill the new form like this:
+  * Login = admin
+  * Password = admin
+* Click on the "Log in" button;
+* Click on your avatar on the top-right of the page and select "My Account";
+* Click on the "Security" menu item;
+* Change the password with the following values:
+  * Old Password = admin
+  * New Password = YourS0narQubeP@ssword
+  * Confirm Password = YourS0narQubeP@ssword
+* Click on the "Change password" button; The message "The password has been changed!" should be displayed.
+
+Let's create a normal user:
+* Click on the "Administration" item on the top menu;
+* Click on the "Security" item in the top-sub-menu and select "Users";
+* Click on the "Create User" button;
+* Fill the new form like this (adapt the values):
+  * Login = johndoe
+  * Name = John Doe
+  * Email = john.doe@your-company.com
+  * Password = JohnDoeP@ssw0rd
+* Click on the "Create" button;
+
+Let's now force users to log in in order to work on SonarQube:
+* Click on the "Configuration" item in the top-sub-menu and select "General Settings";
+* Click on the "Security" item in the left menu;
+* Enable the switch in the "Force user authentication" property and confirm by clicking on the "Save" button.
