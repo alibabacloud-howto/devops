@@ -954,7 +954,7 @@ Add all these files and commit them:
 # Add the files
 git add .gitignore .gitlab-ci.yml package.json pom.xml src/ webpack.config.js
 
-# Commit the files and sent a comment
+# Commit the files and write a comment
 git commit -m "Initial commit."
 
 # Push the commit to the GitLab server
@@ -1516,7 +1516,7 @@ git status
 # Add the files
 git add .gitlab-ci.yml pom.xml
 
-# Commit the files and sent a comment
+# Commit the files and write a comment
 git commit -m "Add a quality stage in the pipeline."
 
 # Push the commit to the GitLab server
@@ -1572,7 +1572,7 @@ git status
 # Add the file
 git add src/test/java/com/alibaba/intl/todolist/controllers/TaskControllerTest.java
 
-# Commit the file and sent a comment
+# Commit the file and write a comment
 git commit -m "Break a unit test on purpose."
 
 # Push the commit to the GitLab server
@@ -1600,7 +1600,7 @@ git status
 # Add the file
 git add src/test/java/com/alibaba/intl/todolist/controllers/TaskControllerTest.java
 
-# Commit the file and sent a comment
+# Commit the file and write a comment
 git commit -m "Fix the unit test."
 
 # Push the commit to the GitLab server
@@ -1634,7 +1634,7 @@ git status
 # Add the file
 git add src/main/java/com/alibaba/intl/todolist/controllers/MachineController.java
 
-# Commit the file and sent a comment
+# Commit the file and write a comment
 git commit -m "Add a potential data race issue."
 
 # Push the commit to the GitLab server
@@ -1665,7 +1665,7 @@ git status
 # Add the file
 git add src/main/java/com/alibaba/intl/todolist/controllers/MachineController.java
 
-# Commit the file and sent a comment
+# Commit the file and write a comment
 git commit -m "Fix the potential data race issue."
 
 # Push the commit to the GitLab server
