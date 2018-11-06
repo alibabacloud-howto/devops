@@ -21,8 +21,11 @@ layout: default
    2. [Run the application locally](#run-the-application-locally)
    3. [Commit and first CI pipeline](#commit-and-first-ci-pipeline)
 4. [Code quality](#code-quality)
-   0. [SonarQube installation and configuration](#sonarqube-installation-and-configuration)
-   1. [Code analysis pipeline stage](#code-analysis-pipeline-stage)
+   0. [SonarQube infrastructure](#sonarqube-infrastructure)
+   1. [SonarQube installation](#sonarqube-installation)
+   2. [SonarQube configuration](#sonarqube-configuration)
+   3. [Code analysis pipeline stage](#code-analysis-pipeline-stage)
+   4. [CI pipeline testing](#ci-pipeline-testing)
 5. Continuous Deployment
    0. High-availability infrastructure
    1. GitLab flow
@@ -1542,3 +1545,131 @@ not. Code coverage is a good indicator before you attempt to execute a major
 [code refactoring](https://en.wikipedia.org/wiki/Code_refactoring): like a safety net, a good code coverage means that
 you have a greater chance that your unit tests will catch bugs before they hit production. 
 
+### CI pipeline testing
+Let's break our pipeline on purpose!
+
+Let's start with a unit test:
+```bash
+# Go to the project folder
+cd ~/projects/todolist
+
+# Open a test file
+nano src/test/java/com/alibaba/intl/todolist/controllers/TaskControllerTest.java
+```
+At the line 87 of this file, change:
+```java
+assertEquals("Task 2", createdTask2.getDescription());
+```
+Into:
+```java
+assertEquals("Task 2222222222", createdTask2.getDescription());
+```
+Save by pressing CTRL+X. Back to Bash, commit the change:
+```bash
+# Check files to commit
+git status
+
+# Add the file
+git add src/test/java/com/alibaba/intl/todolist/controllers/TaskControllerTest.java
+
+# Commit the file and sent a comment
+git commit -m "Break a unit test on purpose."
+
+# Push the commit to the GitLab server
+git push origin master
+```
+
+Have a look at your GitLab pipeline:
+
+![Pipeline with failed tests](images/gitlab-pipeline-failed-test.png)
+
+And your SonarQube project:
+
+![SonarQube with failed tests](images/sonarqube-failed-test.png)
+
+Let's now fix the test:
+```bash
+# Open the file to fix
+nano src/test/java/com/alibaba/intl/todolist/controllers/TaskControllerTest.java
+```
+Restore the the line 87 (set "Task 2" instead of "Task 2222222222"), save with CTRL+X and commit:
+```bash
+# Check files to commit
+git status
+
+# Add the file
+git add src/test/java/com/alibaba/intl/todolist/controllers/TaskControllerTest.java
+
+# Commit the file and sent a comment
+git commit -m "Fix the unit test."
+
+# Push the commit to the GitLab server
+git push origin master
+```
+
+Your GitLab pipeline and SonarQube project should be successful.
+
+Now let's break something else:
+```bash
+# Open another file to break
+nano src/main/java/com/alibaba/intl/todolist/controllers/MachineController.java
+```
+Insert the following lines at the end of the class (line 71):
+```java
+    private String dummy = "example";
+
+    public synchronized String getDummy() {
+        return dummy;
+    }
+
+    public void setDummy(String dummy) {
+        this.dummy = dummy;
+    }
+```
+Save with CTRL+X and continue:
+```bash
+# Check files to commit
+git status
+
+# Add the file
+git add src/main/java/com/alibaba/intl/todolist/controllers/MachineController.java
+
+# Commit the file and sent a comment
+git commit -m "Add a potential data race issue."
+
+# Push the commit to the GitLab server
+git push origin master
+```
+
+Have a look at your GitLab pipeline:
+
+![Pipeline with code issue](images/gitlab-pipeline-failed-major-issue.png)
+
+And your SonarQube project:
+
+![SonarQube with code issue](images/sonarqube-major-issue.png)
+
+![SonarQube with code issue (details)](images/sonarqube-major-issue-details.png)
+
+This time the problem come from a bug inside the code. Thread-safety issues are usually quite hard to fix because
+the bugs are not easy to reproduce. Let's fix the code:
+```bash
+# Open the file to fix
+nano src/main/java/com/alibaba/intl/todolist/controllers/MachineController.java
+```
+Remove the added lines (starting from line 71), then save with CTRL+X and continue:
+```bash
+# Check files to commit
+git status
+
+# Add the file
+git add src/main/java/com/alibaba/intl/todolist/controllers/MachineController.java
+
+# Commit the file and sent a comment
+git commit -m "Fix the potential data race issue."
+
+# Push the commit to the GitLab server
+git push origin master
+```
+
+The GitLab pipeline and SonarQube project should be green again.
