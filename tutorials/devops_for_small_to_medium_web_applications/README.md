@@ -22,7 +22,7 @@ layout: default
    3. [Commit and first CI pipeline](#commit-and-first-ci-pipeline)
 4. [Code quality](#code-quality)
    0. [SonarQube installation and configuration](#sonarqube-installation-and-configuration)
-   1. New code analysis pipeline stage
+   1. [Code analysis pipeline stage](#code-analysis-pipeline-stage)
 5. Continuous Deployment
    0. High-availability infrastructure
    1. GitLab flow
@@ -1018,7 +1018,7 @@ code quality of our application. In this tutorial we are introducing [SonarQube]
 a tool that can help us to find bugs before they arrive in production, and help us to manage
 the [technical debt](https://en.wikipedia.org/wiki/Technical_debt).
 
-### SonarQube installation and configuration
+### SonarQube infrastructure
 Let's create an ECS instance with [SonarQube](https://www.sonarqube.org/):
 * Go to the [ECS console](https://ecs.console.aliyun.com/);
 * Click on the "Create Instance" button;
@@ -1112,6 +1112,7 @@ Let's now create a database account and collect connection information:
   "Connection Information" section (it should be something
   like "rm-gs5wm687b2e3uc770.pgsql.singapore.rds.aliyuncs.com");
 
+### SonarQube installation
 We can now install SonarQube. Open a terminal and enter the following commands:
 ```bash
 # Connect to the ECS instance
@@ -1274,8 +1275,9 @@ systemctl enable nginx
 ```
 Refresh your web browser tab with SonarQube and check the URL: the protocol HTTPS must replace HTTP.
 
+### SonarQube configuration
 We now need to change the administrator password:
-* In your web browser tab with SonarQube (URL like https://sonar.my-sample-domain.xyz/);
+* Open your web browser tab with SonarQube (URL like https://sonar.my-sample-domain.xyz/);
 * Click on the "Log in" link on the top-right of the page;
 * Fill the new form like this:
   * Login = admin
@@ -1303,4 +1305,39 @@ Let's create a normal user:
 Let's now force users to log in in order to work on SonarQube:
 * Click on the "Configuration" item in the top-sub-menu and select "General Settings";
 * Click on the "Security" item in the left menu;
-* Enable the switch in the "Force user authentication" property and confirm by clicking on the "Save" button.
+* Enable the switch in the "Force user authentication" property and confirm by clicking on the "Save" button;
+
+Now that user configuration is done, let's create our quality gate (the set of conditions to meet in order to let
+SonarQube to consider a code analysis as successful or failed):
+* Click on the "Quality Gates" item in the top menu;
+* Click on "SonarQube way" on the left panel;
+* Click on the "Copy" button on the top-right of the page;
+* Set the name "Stricter SonarQube way" and click on the "Copy" button;
+* Add the following conditions (by clicking on the "Add Condition" widget below the existing conditions):
+  * Metric = Coverage, Operator = is less than, Error = 70
+  * Metric = Unit Test Errors, Operator = is not, Error = 0
+  * Metric = Unit Test Failures, Operator = is not, Error = 0
+  * Metric = Blocker Issues, Operator = is not, Error = 0
+  * Metric = Critical Issues, Operator = is not, Error = 0
+  * Metric = Major Issues, Operator = is not, Error = 0
+* Don't forget to click on the "Add" button next to the conditions you just added;
+* Click on the "Set as Default" button on the top-right of the page;
+
+The quality gate should look like this:
+
+![Stricter SonarQube way](images/sonarqube-stricter-sonaqube-way.png)
+
+SonarQube is now ready! Let's integrate it with our CI pipeline.
+
+### Code analysis pipeline stage
+The first step is to obtain a token from SonarQube:
+* Open your web browser tab with SonarQube (URL like https://sonar.my-sample-domain.xyz/);
+* If you are still logged in as "admin", log out by clicking on your avatar on the top-right of the page and
+  select "Log out".
+* Login with your username and password (don't use "admin");
+* Click on your avatar on the top-right of the screen and select "My Account";
+* Click on the "Security" item in the top-sub-menu;
+* Next to "Generate New Token", set the name "todolist" and click on the "Generate" button;
+* You should see a new token appearing (something like "cfe2e3d7d7a15df20e3ecb7de53b6a23b3757474").
+
+
