@@ -51,7 +51,7 @@ The second step is to create ECS instances and related resources:
   * VSwitch zone = first zone of the list
   * VSwitch destination CIDR Block = "192.168.0.0/24"
 * Click on "OK" the create the VPC and the VSwitch;
-* On the VPC list, click on the VPC you just have created;
+* On the VPC list, click on the VPC you have just created;
 * Scroll down and click on "0" at the right of "Security Group";
 * In the new page, click on "Create Security Group";
 * Fill the new form with the following information:
@@ -65,7 +65,7 @@ The second step is to create ECS instances and related resources:
   to any computer on internet;
 * Go to the [ECS console](https://ecs.console.aliyun.com/);
 * Click on the "Create Instance" button;
-* If needed, elect "Advanced Purchase" (also named "Custom");
+* If needed, select "Advanced Purchase" (also named "Custom");
 * Fill the wizard with the following information:
   * Billing Method = Pay-As-You-Go
   * Region = the same as your VPC and the same availability zone as the VSwitch
@@ -86,7 +86,7 @@ The second step is to create ECS instances and related resources:
 * Click on the ["EIP" item](https://vpcnext.console.aliyun.com/eip) on the left menu;
 * On the new page, click on "Create EIP";
 * Fill the wizard with the following information:
-  * Region = the region where you have created you ECS
+  * Region = the region where you have created your ECS
   * Max Bandwidth = 1 Mbps
   * Quantity = 1
 * Click on "Buy Now", select the agreement of service and click on "Activate";
@@ -95,10 +95,10 @@ The second step is to create ECS instances and related resources:
 * In the new form, select:
   * Instance Type = ECS Instance
   * ECS Instance = devops-simple-app-gitlab/i-generatedstring
-* Click on "OK" to bind the EIP to you ECS instance;
+* Click on "OK" to bind the EIP to your ECS instance;
 * Copy the IP Address of your EIP (it should be something like 47.88.155.70).
 
-The ECS instance is ready for GitLab, but before let's register a sub-domain for this machine:
+The ECS instance is ready for GitLab, let's register a sub-domain for this machine:
 * Go to the [Domain console](https://dc.console.aliyun.com/);
 * On the row corresponding to your domain (for example "my-sample-domain.xyz"), click on "Resolve";
 * Click on "Add Record";
@@ -119,6 +119,7 @@ ssh root@gitlab.my-sample-domain.xyz # Use the password you set when you have cr
 
 # Update the machine
 apt-get update
+apt-get upgrade
 
 # Add the GitLab repository for apt-get
 cd /tmp
@@ -126,7 +127,7 @@ curl -LO https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/scrip
 bash /tmp/script.deb.sh
 
 # Install GitLab
-apt-get -y install gitlab-ce
+apt-get install gitlab-ce
 
 # Open GitLab configuration
 nano /etc/gitlab/gitlab.rb
@@ -134,7 +135,7 @@ nano /etc/gitlab/gitlab.rb
 In the GitLab configuration file, replace the value of `external_url` by "http://gitlab.my-sample-domain.xyz" (the
 domain you have just purchased and configured), then save and quit by pressing CTRL+X.
 
-Now let's start GitLab and try it! In your terminal, run the following command:
+Now let's start GitLab and try it. In your terminal, run the following command:
 ```bash
 gitlab-ctl reconfigure
 ```
@@ -144,8 +145,7 @@ Open your web browser on "http://gitlab.my-sample-domain.xyz". You should have a
 Congratulation if you get a similar screen! In case it doesn't work, please first make sure you didn't miss a step,
 then raise an issue if the problem persists.
 
-Do not enter your new password yet because you are using an unencrypted connection! That what we are going to
-configure now.
+Do not enter your new password yet because you are using an unencrypted connection. Let's fix this problem now.
 
 ## HTTPS configuration
 Open your terminal and enter the following commands:
@@ -160,7 +160,7 @@ apt-get postfix # During the installation, select "Internet Site" and set your d
 # Open GitLab configuration
 nano /etc/gitlab/gitlab.rb
 ```
-The last command allow you to edit GitLab configuration:
+The last command allows you to edit GitLab configuration:
 * Modify the value of `external_url` by adding a 's' to "http://" into "https://" (e.g.
   "https://gitlab.my-sample-domain.xyz");
 * Scroll to "Let's Encrypt integration" and insert the following lines:
@@ -179,7 +179,7 @@ gitlab-ctl reconfigure
 Check it worked by opening your web browser to https://gitlab.my-sample-domain.xyz (with the 's' in https).
 
 You can now enter your new password and sign in with the username "root" and your new password. You should be able to access
-to the GitLab homepage.
+to the GitLab dashboard.
 
 Before going further we still need to configure two things:
 * An email server so that GitLab can send emails.
@@ -232,6 +232,7 @@ Let's start with the email server. Go back to the Alibaba Cloud web console and 
 * Click "OK";
 
 You should probably have a domain configuration that looks like that:
+
 ![Domain configuration](images/domain-configuration-mail.png)
 
 Continue the email server configuration:
@@ -239,7 +240,7 @@ Continue the email server configuration:
 * Click on the "Cancel" button to go back to the email domain list;
 * Click on the "Verify" link next to your new domain, and confirm when the prompt appears;
 * Refresh the page after 20 sec. If the status of your domain is still "To Be Verified", click on the "Configure" link
-  and check with step is still in the "To Be Verified" status, fix your domain configuration and re-do the previous
+  and check which step is still in the "To Be Verified" status, fix your domain configuration and re-do the previous
   step ("Verify" link). Sometime the verification step is a bit slow and you need to retry several times.
   When the email domain status is "Verification successful", you can continue to the next step;
 * Click on the "Sender Addresses" item on the left menu;
@@ -256,11 +257,11 @@ Continue the email server configuration:
 * Check your mailbox corresponding to the address you set in the "Reply-To Address" field, you should have received
   an email from "directmail";
 * Click on the link in this email in order to see a confirmation message;
-* Go back on the sender addresses page and note the SMTP address and port at the end of the description, it should be
+* Go back to the sender addresses page and save the SMTP address and port at the end of the description, it should be
   something like "SMTP service address: smtpdm-ap-southeast-1.aliyun.com . SMTP service ports: 25, 80 or
   465(SSL encryption)."
 
-Now that the email server is ready, let's configure GitLab to use it! Open a terminal on your computer and enter
+Now that the email server is ready, let's configure GitLab to use it. Open a terminal on your computer and enter
 the following commands:
 ```bash
 # Connect to the ECS instance
@@ -272,7 +273,7 @@ nano /etc/gitlab/gitlab.rb
 Scroll down to "### Email Settings" and insert the following lines:
 ```ruby
 gitlab_rails['gitlab_email_enabled'] = true
-gitlab_rails['gitlab_email_from'] = 'gitlab@mail.my-sample-domain.xyz' # The sender address you just have created
+gitlab_rails['gitlab_email_from'] = 'gitlab@mail.my-sample-domain.xyz' # The sender address you have just created
 gitlab_rails['gitlab_email_display_name'] = 'GitLab'
 gitlab_rails['gitlab_email_reply_to'] = 'gitlab@mail.my-sample-domain.xyz'
 ```
@@ -300,10 +301,10 @@ You can test the configuration like this:
 * Click on the "Edit" button;
 * Change the "Email" field to your personal email address;
 * Click on "Save changes";
-* Sign out by first clicking on your profile picture on the top-right of the page;
+* Sign out by clicking on your profile picture on the top-right of the page and by selecting "Sign out";
 * Click on the "Forgot your password?" link;
 * Set your personal email address and click on "Reset password";
-* Check in your personal mailbox and check you have received an email (it may be in the spam folder).
+* Check in your personal mailbox and verify you have received an email (it may be in the spam folder).
 
 ## Automatic backup configuration
 Backups are important because they prevent data loss in case of accident and allow you to migrate to another
@@ -348,7 +349,7 @@ Let's now create an [OSS bucket](https://www.alibabacloud.com/product/oss) where
   * Storage Class = Standard
   * Access Control List (ACL) = Private
 * Click on the "OK" button;
-* The page must show the bucket you have just created. Please note the last "Endpoint" for VPC Network Access
+* The page must show the bucket you have just created. Please save the last "Endpoint" for VPC Network Access
   (something like "oss-ap-southeast-1-internal.aliyuncs.com"), it contains your bucket name and the region
   id (e.g. ap-southeast-1).
 
@@ -442,7 +443,7 @@ gitlab-rake gitlab:backup:create
 The last command should have created a backup. Go to the [OSS console](https://oss.console.aliyun.com/) and check you
 have a file with a path like "backup/1540288854_2018_10_23_11.3.6_gitlab_backup.tar".
 
-Let's now configure automatic backup to be run automatically every night. For that we will create two types of
+Let's now configure automatic backup to be executed automatically every night. For that we will create two types of
 [cron jobs](https://en.wikipedia.org/wiki/Cron): one to execute the backup command above, one to save the GitLab
 configuration files.
 
@@ -459,9 +460,9 @@ Enter the following lines into this file:
 ```
 Save and quit by pressing CTRL+X.
 
-You now have configured automatic backup every night at 2AM! If you want to test this configuration you can replace
-"0 2 * * *" by the current time + 2 min; for example if the current time is 14:24, then set "26 14 * * *"; you then
-just need to wait about 2 min and after check whether new files have been created in your OSS bucket.
+You now have configured automatic backup every night at 2AM. If you want to test this configuration you can replace
+"0 2 * * *" by the current time + 2 min; for example if the current time is 14:24, then set "26 14 * * *"; after that
+you need to wait about 2 min and check whether new files have been created in your OSS bucket.
 
 The restoration process is well described in the
 [official documentation](https://docs.gitlab.com/ee/raketasks/backup_restore.html#restore-for-omnibus-installations)
@@ -509,11 +510,15 @@ following instructions:
   instance "devops-simple-app-security-group-runner";
 * Click on the "Connect" link on the right of your ECS instance, copy the VNC Password (something like "667078") and
   enter it immediately after;
-* You should see a terminal in your web browser inviting you to login; Authenticate as root with the password you have
+* You should see a terminal in your web browser inviting you to login. Authenticate as root with the password you have
   just created;
 
 Execute the following commands in this "web-terminal":
 ```bash
+# Update the machine
+apt-get update
+apt-get upgrade
+
 # Add a new repository for apt-get for GitLab Runner
 curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash
 
@@ -539,9 +544,9 @@ apt-get install docker-ce
 ```
 As you can see we setup two applications: [GitLab Runner](https://docs.gitlab.com/ce/ci/runners/) and
 [Docker](https://www.docker.com/). We will keep things very simple with Docker: it is
-a [very](https://docs.docker.com/engine/swarm/key-concepts/) [powerful](https://kubernetes.io/) tool, but in this
-tutorial we will just use it as a "super installer", for example we will not setup any tool, compiler or SDK on this
-runner, instead we will be lazy and let Docker to download the right [images](https://docs.docker.com/get-started/)
+a [very](https://docs.docker.com/engine/swarm/key-concepts/) [powerful](https://kubernetes.io/) tool, but for the moment
+we will just use it as a "super installer", for example we will not setup any tool, compiler or SDK on this
+machine; instead we will be lazy and let Docker to download the right [images](https://docs.docker.com/get-started/)
 for us. Things will become more clear later in this tutorial when we will configure our CI/CD pipeline.
 
 Now we need to connect the runner with GitLab:
@@ -575,11 +580,11 @@ After the tool gives you back the hand, you should be able to see this runner in
 page and check at the bottom, you should see something like this:
 ![Registered runner](images/gitlab-registered-runners.png)
 
-Our GitLab is now ready to be used! But there are few more points to read before creating our first project:
+Our GitLab is now ready to be used! But there are few more points to consider before creating our first project:
 
 ## User management
 As administrator, there are few steps you need to follow in order to improve your GitLab account:
-* Open GitLab in another web browser tab (the URL must be like https://gitlab.my-sample-domain.xyz/);
+* Open GitLab in your web browser (the URL must be like https://gitlab.my-sample-domain.xyz/);
 * Click on your avatar on the top-right of the page and select "Settings";
 * Correctly set the "Full name" and "Email" fields and click on the "Edit profile settings" button;
 * Click on the "Account" item on the left menu;
@@ -601,8 +606,9 @@ the "Admin area".
 Linux servers need to be upgraded from time to time: security patches must be installed as soon as possible and 
 applications should be updated to their latest versions.
 
-On Ubuntu instances, the following command allows you to safely update your server:
+On Ubuntu instances, the following commands allow you to safely update your server:
 ```bash
+apt-get update
 apt-get upgrade
 ```
 Other commands such as `apt-get dist-upgrade` or `do-release-upgrade` are less safe, especially
