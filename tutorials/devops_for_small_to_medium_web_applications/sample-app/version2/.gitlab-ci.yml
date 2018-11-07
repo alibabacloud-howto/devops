@@ -16,8 +16,8 @@ image: maven:3.5.4-jdk-8
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=./.m2/repository"
-  SONAR_URL: "https://sonar.my-sample-domain.xyz"
-  SONAR_LOGIN: "cfe2e3d7d7a15df20e3ecb7de53b6a23b3757474"
+  SONAR_URL: "https://your_sonarqube.url"
+  SONAR_LOGIN: "token_generated_by_sonarqube"
 
 cache:
   paths:
