@@ -1,0 +1,42 @@
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+image: maven:3.5.4-jdk-8
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=./.m2/repository"
+  SONAR_URL: "https://your_sonarqube.url"
+  SONAR_LOGIN: "token_generated_by_sonarqube"
+
+cache:
+  paths:
+    - ./.m2/repository
+
+stages:
+  - build
+  - quality
+
+build:
+  stage: build
+  script: "mvn package -DskipTests=true"
+
+quality:
+  stage: quality
+  script:
+    - "mvn clean install sonar:sonar -Dsonar.host.url=$SONAR_URL -Dsonar.login=$SONAR_LOGIN -Dsonar.branch=$CI_COMMIT_REF_NAME -Dmaven.test.failure.ignore=true"
+    - "wget https://github.com/gabrie-allaigre/sonar-gate-breaker/releases/download/1.0.1/sonar-gate-breaker-all-1.0.1.jar"
+    - "java -jar sonar-gate-breaker-all-1.0.1.jar -u $SONAR_LOGIN"
+  artifacts:
+    paths:
+      - target/*.war

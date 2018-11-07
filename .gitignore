@@ -10,3 +10,5 @@
 **/.jekyll-metadata
 **/.ruby-version
 **/Gemfile.lock
+**/node_modules
+**/package-lock.json
