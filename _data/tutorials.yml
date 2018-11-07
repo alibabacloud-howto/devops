@@ -1,9 +1,27 @@
-- name: DevOps for small-to-medium web applications
-  link: tutorials/devops_for_small_to_medium_web_applications/README.html
+- name: DevOps for small / medium web apps - Part 0 - General introduction
+  link: tutorials/devops_for_small_to_medium_web_applications/part_00_general_introduction.html
   description: >-
-    This tutorial describes all the steps in order to develop a small-to-medium web application and deploy it
-    automatically in Alibaba Cloud.
-  concepts: CI/CD, Git, GitLab, Docker, Java, Maven, Spring Boot, React
+    This is the first part of a tutorial that introduces all the necessary concepts in order to develop and maintain
+    a small / medium web application on Alibaba Cloud.
+  concepts: CI/CD, Git, GitLab Flow
+- name: DevOps for small / medium web apps - Part 1 - GitLab installation and configuration
+  link: tutorials/devops_for_small_to_medium_web_applications/part_01_gitlab_installation_and_configuration.html
+  description: >-
+    This part explains how to install and configure GitLab. It deals with cloud infrastructure, HTTPS, Mail server,
+    automatic backup, GitLab Runner, user management, maintenance and upgrade.
+  concepts: GitLab
+- name: DevOps for small / medium web apps - Part 2 - Continuous Integration
+  link: tutorials/devops_for_small_to_medium_web_applications/part_02_continuous_integration.html
+  description: >-
+    In this part we introduce continuous integration with a very simple pipeline. It is based on a sample web
+    application that combines a backend in Java and a frontend in React.
+  concepts: Continuous Integration, Java, Spring Boot, HTML, CSS, JavaScript, React, MySQL, Flyway, build tools
+- name: DevOps for small / medium web apps - Part 3 - Code quality
+  link: tutorials/devops_for_small_to_medium_web_applications/part_03_code_quality.html
+  description: >-
+    This part focuses on how to integrate a "quality" stage in the CI pipeline thanks to SonarQube. The idea is
+    to find bugs earlier and manage technical debt more easily.
+  concepts: code quality, SonarQube, unit test code coverage
 - name: Getting started with CI/CD and Kubernetes
   link: tutorials/getting_started_with_devops_with_kubernetes/README.html
   description: >-

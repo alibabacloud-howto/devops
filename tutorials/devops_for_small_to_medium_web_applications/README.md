@@ -1,7 +1,7 @@
 ---
 layout: default
 ---
-# DevOps for small/medium web apps
+# DevOps for small / medium web apps
 
 ## Summary
 0. [Part 0 - General introduction](part_00_general_introduction.md)

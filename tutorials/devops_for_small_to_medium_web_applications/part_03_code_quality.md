@@ -1,7 +1,7 @@
 ---
 layout: default
 ---
-# DevOps for small/medium web apps - Part 3 - Code quality
+# DevOps for small / medium web apps - Part 3 - Code quality
 
 ## Summary
 0. [Introduction](#introduction)

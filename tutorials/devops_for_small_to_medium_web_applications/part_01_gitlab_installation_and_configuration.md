@@ -1,7 +1,7 @@
 ---
 layout: default
 ---
-# DevOps for small/medium web apps - Part 1 - GitLab installation and configuration
+# DevOps for small / medium web apps - Part 1 - GitLab installation and configuration
 
 ## Summary
 0. [Introduction](#introduction)
@@ -9,10 +9,11 @@ layout: default
 2. [GitLab installation](#gitlab-installation)
 3. [HTTPS configuration](#https-configuration)
 4. [Mail server configuration](#mail-server-configuration)
-5. [GitLab runner installation and configuration](#gitlab-runner-installation-and-configuration)
-6. [User management](#user-management)
-7. [Maintenance](#maintenance)
-8. [Upgrade](#upgrade)
+5. [Automatic backup configuration](#automatic-backup-configuration)
+6. [GitLab runner installation and configuration](#gitlab-runner-installation-and-configuration)
+7. [User management](#user-management)
+8. [Maintenance](#maintenance)
+9. [Upgrade](#upgrade)
 
 ## Introduction
 [GitLab CE edition](https://about.gitlab.com/) is a free open-source tool that will help us to host Git repositories

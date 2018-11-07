@@ -1,7 +1,7 @@
 ---
 layout: default
 ---
-# DevOps for small/medium web apps - Part 2 - Continuous Integration
+# DevOps for small / medium web apps - Part 2 - Continuous Integration
 
 ## Summary
 0. [Introduction](#introduction)
