@@ -29,8 +29,8 @@ features that allow us to explore important concepts:
   architecture is particularly useful
   for [horizontal scaling](https://en.wikipedia.org/wiki/Scalability#Horizontal_and_vertical_scaling).
 * Because a [relational database](https://en.wikipedia.org/wiki/Relational_database_management_system) is involved,
-  this project demonstrate how to use [Flyway](https://flywaydb.org/) to help to upgrade the schema when the
-  application evolve.
+  this project demonstrates how to use [Flyway](https://flywaydb.org/) to help to upgrade the schema when the
+  application evolves.
 * The build process involves [Npm](https://www.npmjs.com/), [Babel](https://babeljs.io/),
   [Webpack](https://webpack.js.org/) and [Maven](https://maven.apache.org/) to compile and package the application for
   production.
@@ -93,10 +93,10 @@ have a directory with the following top files:
 * package.json      - [Npm](https://www.npmjs.com/) configuration for the frontend: it declares dependencies such as
   [React](https://reactjs.org/), [Babel](https://babeljs.io/) and [Webpack](https://webpack.js.org/).
 * webpack.config.js - [Webpack](https://webpack.js.org/) configuration for the frontend: it contains information about
-  how to [transpile](https://scotch.io/tutorials/javascript-transpilers-what-they-are-why-we-need-them) our
+  how to [transpile](https://scotch.io/tutorials/javascript-transpilers-what-they-are-why-we-need-them) the
   [JSX](https://reactjs.org/docs/introducing-jsx.html) code into standard JavaScript supported by all modern
   web browsers. It also describes how to package the frontend code and place it into a folder where
-  [Spring Boot](https://spring.io/projects/spring-boot) can pick it and serve it via HTTP.
+  [Spring Boot](https://spring.io/projects/spring-boot) can pick it and serves it via HTTP.
 * pom.xml           - [Maven](https://maven.apache.org/) configuration for the backend: it declares dependencies,
   how to compile the code, how to run the tests, and how to package the complete application.
 * src               - Source code of the application.
@@ -116,7 +116,7 @@ Install the [JDK 8](https://www.oracle.com/technetwork/java/javase/downloads/jdk
 ```bash
 mvn clean package
 ```
-This command should end with a "BUILD SUCCESS" message: it compile, run the tests and package the application.
+This command should end with a "BUILD SUCCESS" message: it compiles, runs the tests and packages the application.
 
 Notes:
 * The application source code organization is based on
@@ -147,7 +147,7 @@ The next step is to setup a database locally:
   ```
 * The command above should display a prompt. You can now configure your database:
   ```mysql
-  -- Change the root password if you never did that before on this database
+  -- Change the root password if you never did it before on this database
   ALTER USER 'root'@'localhost' IDENTIFIED BY 'YouNewRootPassword';
 
   -- Create a database for our project
@@ -187,7 +187,7 @@ If you modified this file you need to re-run `mvn clean package`.
 
 You can now launch the application locally with the following command:
 ```bash
-mvn spring-boot:run -Ddatabase.url=jdbc:mysql://localhost:3306/todolist -Ddatabase.user=todolist -Ddatabase.password=P@ssw0rd
+mvn spring-boot:run
 ```
 If everything went well, the application should print several lines of logs in the console. Look at the two last lines:
 ```
@@ -199,11 +199,11 @@ Open a new tab in your web browser and open the url "http://localhost:8080". You
 
 ![Sample application version 1](images/sample-application-v1.png)
 
-Note: you can add new tasks by filling a description and clicking on the "Add" button.
+Note: you can add new tasks by filling a description and by clicking on the "Add" button.
 
 Congratulation if you managed to get the application up and running! The source code has been written with the
 [IntelliJ IDEA](https://www.jetbrains.com/idea/) [IDE](https://en.wikipedia.org/wiki/Integrated_development_environment),
-(the ultimate edition is mandatory for frontend development, you can evaluate it for free for 30 days).
+(the ultimate edition is necessary for frontend development, you can evaluate it for free for 30 days).
 
 ## Commit and first CI pipeline
 It is now time to save the project in the git repository. Please enter the following command in your terminal:
@@ -242,7 +242,7 @@ git commit -m "Initial commit."
 git push origin master
 ```
 
-Pushing your code to GitLab triggered something interesting:
+Pushing your code to GitLab triggers something interesting:
 * Open GitLab in your web browser (the URL must be like https://gitlab.my-sample-domain.xyz/);
 * Click on the "Projects" item in the top menu and select the "Your projects";
 * Click on the "todolist" project; You should be able to see your files;
