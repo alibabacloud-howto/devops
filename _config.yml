@@ -17,7 +17,7 @@ title: DevOps tutorials
 email: your-email@example.com
 description: >- # this means to ignore newlines until "baseurl:"
   Tutorials about DevOps technologies and good practices (CI/CD, containers, infrastruture-as-code, ...).
-baseurl: "/devops-tutorials" # the subpath of your site, e.g. /blog
+baseurl: "/devops" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: ""
 github_username:  aliyun

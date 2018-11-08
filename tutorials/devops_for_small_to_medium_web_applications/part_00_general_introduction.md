@@ -44,5 +44,5 @@ environment. When the application has been tested, the code in the `pre-producti
 Finally, make sure you [have an Alibaba Cloud account](https://www.alibabacloud.com/help/doc-detail/50482.htm).
 
 Important: please download the 
-[related resources](https://github.com/aliyun/devops-tutorials/tree/master/tutorials/devops_for_small_to_medium_web_applications)
+[related resources](https://github.com/alibabacloud-howto/devops/tree/master/tutorials/devops_for_small_to_medium_web_applications)
 before moving to the next part.

@@ -3,7 +3,7 @@
 This repository contains a collections of tutorials about DevOps technologies & good practices and how to integrate
 them with [Alibaba Cloud](https://www.alibabacloud.com/).
 
-Please visit the [official website](https://aliyun.github.io/devops-tutorials/) to read the tutorials for comfortably.
+Please visit the [official website](https://alibabacloud-howto.github.io/devops/) to read the tutorials for comfortably.
 
 ## Contributions
 Please don't hesitate to contribute if you find errors or want to add some new content! The procedure is quite simple:
