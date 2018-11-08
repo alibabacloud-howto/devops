@@ -5,7 +5,7 @@ layout: default
 
 ## Summary
 0. [Introduction](#introduction)
-1. High-availability architecture
+1. [Highly available architecture](#highly-available-architecture)
 2. GitLab flow
 3. Infrastructure-as-code with Terraform
 4. Pipeline improvements
@@ -26,3 +26,23 @@ identical environments, we will use Terraform to speed-up the process.
 
 The final step is to improve our GitLab pipeline in order to make everything automatic.
 
+## Highly available architecture
+The goal is to be able to serve our web application to users even in case of hardware or network failure.
+
+The following diagram shows a simplified view of our architecture:
+
+![HA architecture](images/diagrams/ha-architecture.png)
+
+As you can see we are duplicating each cloud resource into two availability zones (zone A and zone B): since these zones
+are independents, a problem in one zone (e.g. machine/network failure) doesn't impact the other one.
+
+Our application will run on two ECS instances. The traffic from internet is redirected thanks to a server load balancer
+installed in front of them. As you can see the users use HTTPS but we use HTTP internally.
+
+For the data storage layer we use [ApsaraDB RDS for MySQL](https://www.alibabacloud.com/product/apsaradb-for-rds-mysql),
+a managed database service that handles server installation, maintenance, automatic backup, ...etc.
+
+Note: with this diagram you can understand why a stateless application is important: the only place where data can be
+shared is in the database, so we don't need to establish a direct link between the applications. Moreover, if two users
+are modifying the same data (e.g. by deleting the same item), the database will handle transactions for us, keep
+the data consistent and decide which user will receive an error.
