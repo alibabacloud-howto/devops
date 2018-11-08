@@ -93,6 +93,10 @@ article pre.highlight {
     overflow-x: auto;
 }
 
+article img {
+    max-width: 100%;
+}
+
 .index_tutorial_description {
     margin-top: 8px;
     margin-bottom: 4px;
