@@ -8,3 +8,7 @@ article {
     padding: 0;
     overflow-y: inherit;
 }
+
+article pre.highlight {
+    white-space: pre-wrap;
+}
