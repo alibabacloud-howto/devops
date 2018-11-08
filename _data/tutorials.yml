@@ -21,7 +21,7 @@
   description: >-
     This part focuses on how to integrate a "quality" stage in the CI pipeline thanks to SonarQube. The idea is
     to find bugs earlier and manage technical debt more easily.
-  concepts: code quality, SonarQube, unit test code coverage, PostgreSQL RDS, Let's Encrypt
+  concepts: Code quality, SonarQube, unit test code coverage, PostgreSQL RDS, Let's Encrypt
 - name: Getting started with CI/CD and Kubernetes
   link: tutorials/getting_started_with_devops_with_kubernetes/README.html
   description: >-
