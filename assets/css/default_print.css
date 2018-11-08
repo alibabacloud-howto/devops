@@ -1,0 +1,10 @@
+@charset "utf-8";
+
+nav {
+    display: none;
+}
+
+article {
+    padding: 0;
+    overflow-y: inherit;
+}
