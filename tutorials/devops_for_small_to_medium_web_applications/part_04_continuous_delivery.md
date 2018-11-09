@@ -8,8 +8,11 @@ layout: default
 1. [Highly available architecture](#highly-available-architecture)
 2. [GitLab flow](#gitlab-flow)
 3. [Infrastructure-as-code with Terraform](#infrastructure-as-code-with-terraform)
-4. Sample application infrastructure
-5. Pipeline improvements
+4. [Sample application infrastructure](#sample-application-infrastructure)
+5. Infrastructure pipeline stage
+6. Database update pipeline stage
+7. Application installation pipeline stage
+8. Pre-production and production environments
    
 ## Introduction
 In this part we will finally deploy our application in the cloud!
@@ -327,3 +330,13 @@ will always be in sync with the infrastructure code.
 
 However this approach has one drawback: like scripts that modifies database schemas, we need to make sure we don't
 break things and keep compatibility in case we need to rollback our application to an old version.
+
+## Sample application infrastructure
+In this section we will create Terraform scripts that will create resources for one environment:
+* 1 [VPC](https://www.alibabacloud.com/product/vpc)
+* 2 [VSwitches](https://www.alibabacloud.com/help/doc-detail/65387.htm) (one per availability zone)
+* 2 [ECS instances](https://www.alibabacloud.com/product/ecs) (one per availability zone)
+* 1 [Multi-zone MySQL RDS](https://www.alibabacloud.com/product/apsaradb-for-rds-mysql)
+* 1 [SLB instance](https://www.alibabacloud.com/product/server-load-balancer)
+* 1 [EIP](https://www.alibabacloud.com/product/eip)
+
