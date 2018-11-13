@@ -505,7 +505,8 @@ Build 'alicloud-ecs' finished.
 ap-southeast-1: m-t4n938t1plplyl7akeor
 ```
 The last line contains the ID of the image we have just created (here "m-t4n938t1plplyl7akeor"). Before we go
-further, let's study what Packer did step by step:
+further, let's study what Packer did with our script:
+
 0. Create an ECS instance and necessary cloud resources (keypair, vpc, vswitch, security group, eip);
 1. Connect to the ECS instance via SSH;
 2. Wait for 30 seconds (to make sure the VM is completely started);
