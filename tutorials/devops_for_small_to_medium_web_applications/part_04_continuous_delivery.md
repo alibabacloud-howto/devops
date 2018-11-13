@@ -333,7 +333,205 @@ However this approach has one drawback: like scripts that modifies database sche
 break things and keep compatibility in case we need to rollback our application to an old version.
 
 ## VM image generation with Packer
-TODO
+[Packer](https://www.packer.io) is a tool made by the [same company](https://www.hashicorp.com/) as the one who
+develops Terraform. It allows us to create [an image](https://www.alibabacloud.com/help/doc-detail/25460.htm)
+containing our already-configured application. The goal is to be able to create an ECS instance with an image where
+everything is already configured (no need to login to the machine via SSH and install or execute applications). This
+solution is particularly handy for [auto scaling](https://www.alibabacloud.com/product/auto-scaling).
+
+Let's test Packer before using it for our project. Please
+[install it](https://www.packer.io/intro/getting-started/install.html) on your computer (download the binary package
+and add it to your [PATH variable](https://en.wikipedia.org/wiki/PATH_(variable))), then open a terminal and run:
+```bash
+# Create a folder for our test
+mkdir -p ~/projects/packer-test
+
+cd ~/projects/packer-test
+
+# Create a sample configuration
+nano test.json
+```
+Copy the following content into your script:
+```json
+{
+  "variables": {
+    "access_key": "{{env `ALICLOUD_ACCESS_KEY`}}",
+    "secret_key": "{{env `ALICLOUD_SECRET_KEY`}}",
+    "region_id": "{{env `ALICLOUD_REGION`}}",
+    "source_image": "{{env `SOURCE_IMAGE`}}",
+    "instance_type": "{{env `INSTANCE_TYPE`}}"
+  },
+  "builders": [
+    {
+      "type": "alicloud-ecs",
+      "access_key": "{{user `access_key`}}",
+      "secret_key": "{{user `secret_key`}}",
+      "region": "{{user `region_id`}}",
+      "image_name": "sample-image",
+      "image_description": "Sample image for testing Packer.",
+      "image_version": "1.0",
+      "source_image": "{{user `source_image`}}",
+      "ssh_username": "root",
+      "instance_type": "{{user `instance_type`}}",
+      "io_optimized": "true",
+      "internet_charge_type": "PayByTraffic",
+      "image_force_delete": "true"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "apt-get -y update",
+        "apt-get -y upgrade",
+        "apt-get -y install nginx",
+        "systemctl start nginx",
+        "systemctl enable nginx",
+        "sleep 10",
+        "curl http://localhost"
+      ],
+      "pause_before": "30s"
+    }
+  ]
+}
+```
+Save and quit with CTRL+X.
+
+Before we can run this script we need to know the exact source image and instance type available in your region. Open
+a new web browser tab and follow these instructions:
+* Go to [OpenAPI Explorer](https://api.aliyun.com/#product=Ecs&api=DescribeInstanceTypes);
+* If it is not already the case, select the "ECS" product on the left menu, and the "DescribeInstanceTypes"
+  service on the left sub-menu;
+* Enter your [region ID](https://www.alibabacloud.com/help/doc-detail/40654.htm) in the "RegionId"
+  field (e.g. ap-southeast-1);
+* Click on the "Submit Request" button at the bottom;
+* If needed, this website will ask you to login with your Alibaba Cloud account;
+* The "Response Result" panel on the right should contain a tree of instance types; expand each instance type until you
+  find one with "MemorySize" equals to 1 or more, then save the value of its "InstanceTypeId" (e.g. ecs.n1.small);
+* Select the ["DescribeImages" service](https://api.aliyun.com/#product=Ecs&api=DescribeImages) on the left sub-menu;
+* Enter your region ID in the "RegionId" field (e.g. ap-southeast-1);
+* Enter "ubuntu\*64\*" in the "ImageName" field;
+* Enter "system" in the "ImageOwnerAlias" field;
+* Click on the "Submit Request" button at the bottom;
+* The "Response Result" panel should contain a tree of available images; expand each image and save the value of the
+  most recent "ImageId" (e.g. ubuntu_16_0402_64_20G_alibase_20180409.vhd);
+
+Now that we have the "InstanceTypeId" and "ImageId", go back to your terminal and type:
+```bash
+# Configure the Alibaba Cloud provider
+export ALICLOUD_ACCESS_KEY="your-accesskey-id"
+export ALICLOUD_SECRET_KEY="your-accesskey-secret"
+export ALICLOUD_REGION="your-region-id"
+export SOURCE_IMAGE="your-ImageId"
+export INSTANCE_TYPE="your-InstanceTypeId"
+
+# Create the image in the cloud
+packer build test.json
+```
+Packer should output something like this:
+```
+alicloud-ecs output will be in this color.
+
+==> alicloud-ecs: Force delete flag found, skipping prevalidating image name.
+    alicloud-ecs: Found image ID: ubuntu_16_0402_64_20G_alibase_20180409.vhd
+==> alicloud-ecs: Creating temporary keypair: packer_5bea5aa2-e524-1af8-80d1-1db78347ed15
+==> alicloud-ecs: Creating vpc
+==> alicloud-ecs: Creating vswitch...
+==> alicloud-ecs: Creating security groups...
+==> alicloud-ecs: Creating instance.
+==> alicloud-ecs: Allocating eip
+==> alicloud-ecs: Allocated eip 47.74.178.35
+    alicloud-ecs: Attach keypair packer_5bea5aa2-e524-1af8-80d1-1db78347ed15 to instance: i-t4nhcv8qx069trkfgye6
+==> alicloud-ecs: Starting instance: i-t4nhcv8qx069trkfgye6
+==> alicloud-ecs: Using ssh communicator to connect: 47.74.178.35
+==> alicloud-ecs: Waiting for SSH to become available...
+==> alicloud-ecs: Connected to SSH!
+==> alicloud-ecs: Pausing 30s before the next provisioner...
+==> alicloud-ecs: Provisioning with shell script: /var/folders/v1/jvjz3zmn64q0j34yc9m9n4w00000gn/T/packer-shell047404213
+    alicloud-ecs: Get:1 http://mirrors.cloud.aliyuncs.com/ubuntu xenial InRelease [247 kB]
+    alicloud-ecs: Get:2 http://mirrors.cloud.aliyuncs.com/ubuntu xenial-updates InRelease [109 kB]
+[...]
+    alicloud-ecs: 142 upgraded, 0 newly installed, 0 to remove and 4 not upgraded.
+[...]
+    alicloud-ecs: The following NEW packages will be installed:
+    alicloud-ecs:   fontconfig-config fonts-dejavu-core libfontconfig1 libgd3 libvpx3 libxpm4
+    alicloud-ecs:   libxslt1.1 nginx nginx-common nginx-core
+    alicloud-ecs: 0 upgraded, 10 newly installed, 0 to remove and 4 not upgraded.
+[...]
+    alicloud-ecs: Executing /lib/systemd/systemd-sysv-install enable nginx
+    alicloud-ecs:   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+    alicloud-ecs:                                  Dload  Upload   Total   Spent    Left  Speed
+    alicloud-ecs: 100   612  100   612    0     0  81415      0 --:--:-- --:--:-- --:--:-- 87428
+    alicloud-ecs: <!DOCTYPE html>
+    alicloud-ecs: <html>
+    alicloud-ecs: <head>
+    alicloud-ecs: <title>Welcome to nginx!</title>
+    alicloud-ecs: <style>
+    alicloud-ecs:     body {
+    alicloud-ecs:         width: 35em;
+    alicloud-ecs:         margin: 0 auto;
+    alicloud-ecs:         font-family: Tahoma, Verdana, Arial, sans-serif;
+    alicloud-ecs:     }
+    alicloud-ecs: </style>
+    alicloud-ecs: </head>
+    alicloud-ecs: <body>
+    alicloud-ecs: <h1>Welcome to nginx!</h1>
+    alicloud-ecs: <p>If you see this page, the nginx web server is successfully installed and
+    alicloud-ecs: working. Further configuration is required.</p>
+    alicloud-ecs:
+    alicloud-ecs: <p>For online documentation and support please refer to
+    alicloud-ecs: <a href="http://nginx.org/">nginx.org</a>.<br/>
+    alicloud-ecs: Commercial support is available at
+    alicloud-ecs: <a href="http://nginx.com/">nginx.com</a>.</p>
+    alicloud-ecs:
+    alicloud-ecs: <p><em>Thank you for using nginx.</em></p>
+    alicloud-ecs: </body>
+    alicloud-ecs: </html>
+==> alicloud-ecs: Stopping instance: i-t4nhcv8qx069trkfgye6
+==> alicloud-ecs: Waiting instance stopped: i-t4nhcv8qx069trkfgye6
+==> alicloud-ecs: Creating image: sample-image
+    alicloud-ecs: Detach keypair packer_5bea5aa2-e524-1af8-80d1-1db78347ed15 from instance: i-t4nhcv8qx069trkfgye6
+==> alicloud-ecs: Cleaning up 'EIP'
+==> alicloud-ecs: Cleaning up 'instance'
+==> alicloud-ecs: Cleaning up 'security group'
+==> alicloud-ecs: Cleaning up 'vSwitch'
+==> alicloud-ecs: Cleaning up 'VPC'
+==> alicloud-ecs: Deleting temporary keypair...
+Build 'alicloud-ecs' finished.
+
+==> Builds finished. The artifacts of successful builds are:
+--> alicloud-ecs: Alicloud images were created:
+
+ap-southeast-1: m-t4n938t1plplyl7akeor
+```
+The last line contains the ID of the image we have just created (here "m-t4n938t1plplyl7akeor"). Before we go
+further, let's study what Packer did step by step:
+0. Create an ECS instance and necessary cloud resources (keypair, vpc, vswitch, security group, eip);
+1. Connect to the ECS instance via SSH;
+2. Wait for 30 seconds (to make sure the VM is completely started);
+3. Update the machine (`apt-get -y update` and `apt-get -y upgrade`);
+4. Install [Nginx](https://nginx.org/en/) (`apt-get -y install nginx`);
+5. Start Nginx and configure
+   [SystemD](https://www.freedesktop.org/software/systemd/man/systemctl.html#enable%20UNIT%E2%80%A6) to start it when
+   the machine boots (`systemctl start nginx` and `systemctl enable nginx`);
+6. Wait for 10 seconds (to make sure Nginx is started);
+7. Test Nginx by sending a HTTP request to "http://localhost" (`curl http://localhost`);
+8. Stop the ECS instance;
+9. Create a [snapshot](https://www.alibabacloud.com/help/doc-detail/25455.htm) of the system disk and convert it to
+   an image;
+10. Release all cloud resources (eip, ecs, security group, vswitch, vpc, keypair).
+
+You can check the newly created image via the web console:
+* Open the [ECS console](https://ecs.console.aliyun.com/);
+* Select "Images" in the left menu;
+* If necessary, select your region on the top of the page;
+* You should be able to see your new image:
+
+![Sample image made with Packer](images/packer-sample-image.png)
+
+* If you want, you can test this image by clicking on the "Create Instance" link on the left;
+* When you are done, you can delete this image by selecting its checkbox and by clicking on the "Delete" button at the
+  bottom of the page;
 
 ## Application infrastructure
 In this section we will create Terraform scripts that will create resources for one environment:
@@ -345,4 +543,3 @@ In this section we will create Terraform scripts that will create resources for 
 * 1 [SLB instance](https://www.alibabacloud.com/product/server-load-balancer)
 * 1 [EIP](https://www.alibabacloud.com/product/eip)
 
-TODO VM image generation with Packer (Let's Encrypt renew at server startup)
