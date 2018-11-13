@@ -8,12 +8,13 @@ layout: default
 1. [Highly available architecture](#highly-available-architecture)
 2. [GitLab flow](#gitlab-flow)
 3. [Infrastructure-as-code with Terraform](#infrastructure-as-code-with-terraform)
-4. [Sample application infrastructure](#sample-application-infrastructure)
-5. Infrastructure pipeline stage
-6. Database update pipeline stage
-7. Application installation pipeline stage
-8. Pre-production and production environments
-   
+4. [VM image generation with Packer](#vm-image-generation-with-packer)
+5. [Application infrastructure](#application-infrastructure)
+6. Infrastructure pipeline stage
+7. Database update pipeline stage
+8. Application installation pipeline stage
+9. Pre-production and production environments
+
 ## Introduction
 In this part we will finally deploy our application in the cloud!
 
@@ -43,7 +44,7 @@ As you can see we are duplicating each cloud resource into two availability zone
 are independents, a problem in one zone (e.g. machine/network failure) does not affect the other one.
 
 Our application will run on two ECS instances. The traffic from internet is redirected thanks to a server load balancer
-installed in front of them. As you can see our system uses HTTPS externally and HTTP internally.
+installed in front of them.
 
 For the data storage layer we use [ApsaraDB RDS for MySQL](https://www.alibabacloud.com/product/apsaradb-for-rds-mysql),
 a managed database service that handles server installation, maintenance, automatic backup, ...etc.
@@ -214,7 +215,7 @@ data "alicloud_zones" "az" {
   network_type = "Vpc"
 }
 
-# Sample VSwitch
+// Sample VSwitch
 resource "alicloud_vswitch" "sample_vswitch" {
   name = "sample-vswitch"
   availability_zone = "${data.alicloud_zones.az.zones.0.id}"
@@ -331,12 +332,17 @@ will always be in sync with the infrastructure code.
 However this approach has one drawback: like scripts that modifies database schemas, we need to make sure we don't
 break things and keep compatibility in case we need to rollback our application to an old version.
 
-## Sample application infrastructure
+## VM image generation with Packer
+TODO
+
+## Application infrastructure
 In this section we will create Terraform scripts that will create resources for one environment:
 * 1 [VPC](https://www.alibabacloud.com/product/vpc)
 * 2 [VSwitches](https://www.alibabacloud.com/help/doc-detail/65387.htm) (one per availability zone)
+* 1 [Security group](https://www.alibabacloud.com/help/doc-detail/25387.htm)
 * 2 [ECS instances](https://www.alibabacloud.com/product/ecs) (one per availability zone)
 * 1 [Multi-zone MySQL RDS](https://www.alibabacloud.com/product/apsaradb-for-rds-mysql)
 * 1 [SLB instance](https://www.alibabacloud.com/product/server-load-balancer)
 * 1 [EIP](https://www.alibabacloud.com/product/eip)
 
+TODO VM image generation with Packer (Let's Encrypt renew at server startup)

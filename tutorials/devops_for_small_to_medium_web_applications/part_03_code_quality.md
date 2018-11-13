@@ -476,7 +476,7 @@ quality:
     - "java -jar sonar-gate-breaker-all-1.0.1.jar -u $SONAR_LOGIN"
   artifacts:
     paths:
-      - target/*.war
+      - target/*.jar
 ```
 This file contains the following modifications:
 * A new stage "quality" has been added under the `stages` block;

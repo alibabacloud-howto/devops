@@ -9,8 +9,9 @@ layout: default
 2. [Part 2 - Continuous Integration](part_02_continuous_integration.md)
 3. [Part 3 - Code quality](part_03_code_quality.md)
 4. [Part 4 - Continuous Delivery](part_04_continuous_delivery.md)
-5. Part 5 - Maintenance and evolution
-6. Part 6 - UI testing
-7. Part 7 - Packer and auto-scaling
-8. Part 8 - Blue-Green deployment
+5. Part 5 - HTTPS configuration
+6. Part 6 - Maintenance and evolution
+7. Part 7 - UI testing
+8. Part 8 - Auto-scaling
+9. Part 9 - Rolling-release
 9. Annex 1 - Replacing GitLab CI by Jenkins

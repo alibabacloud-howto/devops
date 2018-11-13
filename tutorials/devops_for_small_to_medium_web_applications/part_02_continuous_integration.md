@@ -252,7 +252,7 @@ You should see something like this:
 
 ![First pipeline](images/gitlab-first-pipeline.png)
 
-Clicking on the "Artifacts" button on the left allows you to download the generated ".war" file containing your
+Clicking on the "Artifacts" button on the left allows you to download the generated ".jar" file containing your
 ready-for-production application.
 
 Clicking on the icon in the "Stages" column and then selecting "build" allows you to see the commands and logs used
@@ -277,7 +277,7 @@ build:
   script: "mvn package"
   artifacts:
     paths:
-      - target/*.war
+      - target/*.jar
 ```
 The first line "image: maven:3.5.4-jdk-8" defines the Docker image used to execute the build command (as you can see,
 using Docker relieves us to setup the JDK 8 and Maven on the GitLab runner manually).
@@ -289,7 +289,7 @@ The "stages" block defines only one stage "build", we will add new ones later in
 
 The "build" block is the most important one: it instructs the GitLab runner to execute "mvn package" in order to
 compile, run the tests and package the application. The "artifacts" block instructs GitLab to save the generated
-".war" file.
+".jar" file.
 
 Note: even if this pipeline is simple, it is already quite useful for a team since it can immediately inform the team
 that somebody committed something bad (for example he missed a file, or some test fail unexpectedly). GitLab
