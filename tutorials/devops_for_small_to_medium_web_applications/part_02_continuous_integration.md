@@ -161,29 +161,17 @@ The next step is to setup a database locally:
   QUIT;
   ```
 
-Now that we have a database up and running, we need to create a [schema](https://en.wikipedia.org/wiki/Database_schema):
-Enter the following commands in your terminal:
-```bash
-# Go to the project folder
-cd ~/projects/todolist
-
-# Use Flyway to run the DB scripts
-mvn flyway:migrate -Ddatabase.url=jdbc:mysql://localhost:3306/todolist -Ddatabase.user=todolist -Ddatabase.password=P@ssw0rd
-```
-Note: [Flyway](https://flywaydb.org/) creates a table "flyway_schema_history" that contains the scripts from
-"src/main/resources/db/migration" that have been executed successfully. During development when you upgrade your
-application schema, you cannot modify existing SQL scripts from this folder, instead you need to create a new script
-with a higher prefix number. Like this, next time you run `mvn flyway:migrate`, Flyway will be clever enough to only
-run the new scripts.
-
-Have a look at the backend configuration file "src/main/resources/application.properties" and check that the DB
-configuration corresponds to your installation:
+Now that we have a database up and running, we need to configure the application. Have a look at the backend
+configuration file "src/main/resources/application.properties" and check that the DB configuration corresponds to your
+installation:
 ```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/todolist
+spring.datasource.url=jdbc:mysql://localhost:3306/todolist?useSSL=false
 spring.datasource.username=todolist
 spring.datasource.password=P@ssw0rd
 ```
-If you modified this file you need to re-run `mvn clean package`.
+Note 0: The `spring.datasource.url` property is in the format "jdbc:mysql://HOSTNAME:PORT/DATABASE_NAME?useSSL=false".
+
+Note 1: If you modified this file you need to re-run `mvn clean package`.
 
 You can now launch the application locally with the following command:
 ```bash
@@ -202,8 +190,62 @@ Open a new tab in your web browser and open the url "http://localhost:8080". You
 Note: you can add new tasks by filling a description and by clicking on the "Add" button.
 
 Congratulation if you managed to get the application up and running! The source code has been written with the
-[IntelliJ IDEA](https://www.jetbrains.com/idea/) [IDE](https://en.wikipedia.org/wiki/Integrated_development_environment),
+[IntelliJ IDEA](https://www.jetbrains.com/idea/) [IDE](https://en.wikipedia.org/wiki/Integrated_development_environment)
 (the ultimate edition is necessary for frontend development, you can evaluate it for free for 30 days).
+
+Before we move on and create our first CI pipeline, there is still an important point to talk about: we didn't
+create any table in the database, so how does the application work? Let's have a look at our database with a terminal:
+```bash
+# Connect to the database (use your new root password)
+mysql -u root -p
+```
+The command above opens a prompt; please enter the following instructions:
+```mysql
+-- Use our database
+USE todolist;
+
+-- Display the tables
+SHOW TABLES;
+```
+The last command should display something like this:
+```
++-----------------------+
+| Tables_in_todolist    |
++-----------------------+
+| flyway_schema_history |
+| task                  |
++-----------------------+
+2 rows in set (0.00 sec)
+```
+Now we can understand why the application works: because the database
+[schema](https://en.wikipedia.org/wiki/Database_schema) has been created. The "task" table corresponds to the Java class
+"src/main/java/com/alibaba/intl/todolist/model/Task.java". Let's study "flyway_schema_history":
+```mysql
+-- Look at the content of the flyway_schema_history table
+SELECT * FROM flyway_schema_history;
+```
+The result should look like this:
+```
++----------------+---------+-------------------+------+-----------------------------+------------+--------------+---------------------+----------------+---------+
+| installed_rank | version | description       | type | script                      | checksum   | installed_by | installed_on        | execution_time | success |
++----------------+---------+-------------------+------+-----------------------------+------------+--------------+---------------------+----------------+---------+
+|              1 | 001     | Create task table | SQL  | V001__Create_task_table.sql | -947603613 | todolist     | 2018-10-31 17:57:51 |             24 |       1 |
++----------------+---------+-------------------+------+-----------------------------+------------+--------------+---------------------+----------------+---------+
+1 row in set (0.00 sec)
+```
+The "flyway_schema_history" table has been created by [Flyway](https://flywaydb.org/), a tool that allows us to
+create and update our database schema. As you can see, the table contains the names of the scripts from
+"src/main/resources/db/migration" that have been successfully executed.
+
+Working with Flyway requires us to follow this procedure:
+* During the development of the application, when we want to upgrade our database schema, we need to add a new script
+  in the "src/main/resources/db/migration" folder with a higher prefix number (we cannot modify existing scripts);
+* When Flyway starts, it checks what are the scripts that have been already executed (thanks to the
+  "flyway_schema_history" table), and run the new ones.
+
+Flyway is automatically started when the applications starts, if you check the application logs, you can see that
+Spring calls Flyway during its initialization. For more information about this integration, please read the
+[official documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/howto-database-initialization.html#howto-execute-flyway-database-migrations-on-startup).
 
 ## Commit and first CI pipeline
 It is now time to save the project in the git repository. Please enter the following command in your terminal:

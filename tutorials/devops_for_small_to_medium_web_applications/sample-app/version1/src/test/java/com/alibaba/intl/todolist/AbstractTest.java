@@ -33,7 +33,10 @@ public abstract class AbstractTest {
 
     @BeforeClass
     public static void overrideConfiguration() {
+        System.setProperty("spring.flyway.enabled", "false");
+
         System.setProperty("spring.jpa.hibernate.ddl-auto", "create");
+        System.setProperty("spring.jpa.properties.hibernate.dialect", "org.hibernate.dialect.H2Dialect");
         System.setProperty("spring.datasource.url", "jdbc:h2:mem:");
         System.setProperty("spring.datasource.username", "sa");
         System.setProperty("spring.datasource.password", "");

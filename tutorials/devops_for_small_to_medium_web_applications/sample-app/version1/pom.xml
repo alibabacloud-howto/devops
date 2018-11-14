@@ -30,12 +30,14 @@ limitations under the License.
 
     <properties>
         <java.version>1.8</java.version>
+        <mysql-connector-java.version>5.1.47</mysql-connector-java.version>
+        <flyway-core.version>5.2.1</flyway-core.version>
         <commons-io.version>2.6</commons-io.version>
+
         <frontend-maven-plugin.version>1.6</frontend-maven-plugin.version>
         <frontend-maven-plugin.node.version>v10.11.0</frontend-maven-plugin.node.version>
         <frontend-maven-plugin.npm.version>6.4.1</frontend-maven-plugin.npm.version>
-        <flyway-maven-plugin.version>5.2.1</flyway-maven-plugin.version>
-        <mysql-connector-java.version>5.1.47</mysql-connector-java.version>
+
         <wiremock.version>2.19.0</wiremock.version>
 
         <database.url>jdbc:mysql://localhost:3306/todolist</database.url>
@@ -52,15 +54,23 @@ limitations under the License.
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
+
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>${flyway-core.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>${commons-io.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -128,24 +138,6 @@ limitations under the License.
                 <configuration>
                     <useSystemClassLoader>false</useSystemClassLoader>
                 </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.flywaydb</groupId>
-                <artifactId>flyway-maven-plugin</artifactId>
-                <version>${flyway-maven-plugin.version}</version>
-                <configuration>
-                    <url>${database.url}</url>
-                    <user>${database.user}</user>
-                    <password>${database.password}</password>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>mysql</groupId>
-                        <artifactId>mysql-connector-java</artifactId>
-                        <version>${mysql-connector-java.version}</version>
-                    </dependency>
-                </dependencies>
             </plugin>
         </plugins>
     </build>
