@@ -9,11 +9,12 @@ layout: default
 2. [GitLab flow](#gitlab-flow)
 3. [Infrastructure-as-code with Terraform](#infrastructure-as-code-with-terraform)
 4. [VM image generation with Packer](#vm-image-generation-with-packer)
-5. [Application infrastructure](#application-infrastructure)
-6. Infrastructure pipeline stage
-7. Database update pipeline stage
-8. Application installation pipeline stage
-9. Pre-production and production environments
+5. [Health check web service](#health-check-web-service)
+6. [Application infrastructure](#application-infrastructure)
+7. Infrastructure pipeline stage
+8. Database update pipeline stage
+9. Application installation pipeline stage
+10. Pre-production and production environments
 
 ## Introduction
 In this part we will finally deploy our application in the cloud!
@@ -534,8 +535,115 @@ You can check the newly created image via the web console:
 * When you are done, you can delete this image by selecting its checkbox and by clicking on the "Delete" button at the
   bottom of the page;
 
+## Health check web service
+Before we start with infrastructure scripts, we first need to modify the application in order to add a
+"/health" REST service that just responds "OK". It will be useful for the
+[health check](https://www.alibabacloud.com/help/faq-detail/39455.htm) process performed by the
+[server load balancer](https://www.alibabacloud.com/product/server-load-balancer).
+Open a terminal and execute:
+```bash
+# Go to the project folder
+cd ~/projects/todolist
+
+# Create a REST controller
+nano src/main/java/com/alibaba/intl/todolist/controllers/HealthController.java
+```
+Copy the following content into the new file:
+```java
+package com.alibaba.intl.todolist.controllers;
+
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Inform other systems that the application is healthy.
+ *
+ * @author Alibaba Cloud
+ */
+@RestController
+public class HealthController {
+
+    @RequestMapping("/health")
+    public String health() {
+        return "OK";
+    }
+}
+```
+Save and quit by pressing CTRL+X, then create another file:
+```bash
+# Create the corresponding test
+nano src/test/java/com/alibaba/intl/todolist/controllers/HealthControllerTest.java
+```
+Copy the following content into the new file:
+```java
+package com.alibaba.intl.todolist.controllers;
+
+import com.alibaba.intl.todolist.AbstractTest;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
+
+import static org.junit.Assert.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+/**
+ * Test the REST API behind "/health".
+ *
+ * @author Alibaba Cloud
+ */
+public class HealthControllerTest extends AbstractTest {
+
+    @Autowired
+    private WebApplicationContext wac;
+
+    private MockMvc mockMvc;
+
+    @Before
+    public void setup() {
+        mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
+    }
+
+    @Test
+    public void testHealth() throws Exception {
+        String response = mockMvc.perform(get("/health"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertEquals("OK", response);
+    }
+}
+```
+Save and quit by pressing CTRL+X, then continue:
+```bash
+# Compile and run the tests
+mvn clean package
+# Note: the resulting logs should contain "BUILD SUCCESS".
+
+# Check the files to commit
+git status
+
+# Add the files
+git add src/main/java/com/alibaba/intl/todolist/controllers/HealthController.java
+git add src/test/java/com/alibaba/intl/todolist/controllers/HealthControllerTest.java
+
+# Commit the files and write a comment
+git commit -m "Add a /health REST controller."
+
+# Push the commit to the GitLab server
+git push origin master
+```
+Check that everything worked in your GitLab pipeline (the URL should be something like
+https://gitlab.my-sample-domain.xyz/marcplouhinec/todolist/pipelines) and in your SonarQube dashboard (the URL should
+be something like https://sonar.my-sample-domain.xyz/dashboard?id=com.alibaba.intl%3Atodo-list%3Amaster).
+
+Note: the code modifications above are included in the "sample-app/version3" folder.
+
 ## Application infrastructure
-In this section we will create Terraform scripts that will create resources for one environment:
+In this section we will create Packer and Terraform scripts that will create the following cloud resources for
+one environment:
 * 1 [VPC](https://www.alibabacloud.com/product/vpc)
 * 2 [VSwitches](https://www.alibabacloud.com/help/doc-detail/65387.htm) (one per availability zone)
 * 1 [Security group](https://www.alibabacloud.com/help/doc-detail/25387.htm)
@@ -543,4 +651,40 @@ In this section we will create Terraform scripts that will create resources for 
 * 1 [Multi-zone MySQL RDS](https://www.alibabacloud.com/product/apsaradb-for-rds-mysql)
 * 1 [SLB instance](https://www.alibabacloud.com/product/server-load-balancer)
 * 1 [EIP](https://www.alibabacloud.com/product/eip)
+
+We will organize the scripts in 3 main groups:
+* The basis group that setups VPC, VSwitches, Security group, EIP, SLB instance and domain records.
+* The application group that setups RDS, VM image and ECS instances.
+* The [Let's Encrypt](https://letsencrypt.org/) group is responsible for obtaining and updating our
+  [SSL certificate](https://www.verisign.com/en_US/website-presence/website-optimization/ssl-certificates/index.xhtml).
+
+Note: we will deal with the third group in the next part of this tutorial.
+ 
+In addition, we will commit our infrastructure scripts alongside the application source code. The logic behind this
+design choice is to make sure both code bases are synchronized.
+
+Because the scripts are quite large, we will copy them from the "sample-app/version3" folder of this tutorial. Open a
+terminal and execute the following commands:
+```bash
+# Go to the project folder
+cd ~/projects/todolist
+
+# Copy the scripts from this tutorials (adapt the path to where you copied this tutorial)
+cp -R path/to/sample-app/version3/infrastructure .
+
+# Check the content of this folder
+ls -l infrastructure
+ls -l infrastructure/10_webapp
+```
+
+As you can see the scripts are organized like this:
+* 05_vpc_slb_eip_domain - "basis group" (setup VPC, VSwitches, ...)
+* 06_domain_step_2 - workaround for a bug in the `alicloud_dns_record` Terraform resource; it also
+  belongs to the "basis group"
+* 10_webapp - folder that contains the "application group"
+  * 05_rds - setup the MySQL database
+  * 10_image - build the VM image configured to connect to the MySQL database
+  * 15_ecs - setup the ECS instances with the VM image
+
+Note: the prefix "xx_" in the folder names is just a way to show them sorted logically with the `ls` command.
 
