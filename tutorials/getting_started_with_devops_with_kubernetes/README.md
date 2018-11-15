@@ -89,6 +89,8 @@ The next step is to register the Gitlab runner (the ECS instance that runs CI/CD
   ```
   Enter the URL and the token from the web browser tab, set "docker-runner" as the description, choose "docker" as executor
   and set "alpine:latest" as the default Docker image.
+
+  Warning: please don't set any tag, or your GitLab runner will not execute your jobs!
 * Refresh the web browser tab and check the runner is displayed.
 
 Go back to the home page by clicking on the Gitlab icon on the top-left side of the screen and keep this web browser
