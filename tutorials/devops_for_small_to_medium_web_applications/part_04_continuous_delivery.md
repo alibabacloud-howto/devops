@@ -1225,3 +1225,25 @@ your HTTP request. Refresh the page several times and look what happen:
 ![Application on second zone](images/application-instance-id-zone-1.png)
 
 As you can see, your HTTP requests are distributed among your two ECS instances.
+
+After you have finished to study your environment, we need to delete it (it will be the responsibility of the CI/CD
+pipeline to re-create and update it). Open a terminal and run:
+```bash
+# Go to the last sub-group folder
+cd ~/projects/todolist/infrastructure/10_webapp/15_ecs/
+
+# Delete the ECS instances
+terraform destroy
+
+# Delete the database
+cd ../05_rds/
+terraform destroy
+
+# Delete the domain record in Mainland China
+cd ../../06_domain_step_2/
+terraform destroy
+
+# Delete the vpc and other basis group resources
+cd ../05_vpc_slb_eip_domain
+terraform destroy
+```
