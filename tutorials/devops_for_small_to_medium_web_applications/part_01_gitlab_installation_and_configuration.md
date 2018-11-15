@@ -570,7 +570,7 @@ This tool needs several information in order to register the runner. Enter the f
 * Please enter the gitlab-ci description for this runner:
   devops-simple-app-security-group-runner
 * Please enter the gitlab-ci tags for this runner (comma separated):
-  keep it empty
+  (keep it empty)
 * Please enter the executor:
   docker
 * Please enter the default Docker image (e.g. ruby:2.1):
