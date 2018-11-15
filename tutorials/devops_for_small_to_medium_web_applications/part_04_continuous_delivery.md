@@ -874,3 +874,354 @@ Address: 161.117.2.245
 ```
 The last IP address should be your EIP.
 
+Let's study the "application group", open "10_webapp/05_rds/variables.tf":
+```hcl-terraform
+variable "env" {
+  description = "Environment (dev, pre-prod, prod)"
+  default = "dev"
+}
+
+variable "db_account_password" {
+  description = "MySQL database user password."
+  default = "P@ssw0rd"
+}
+```
+Note: when creating the database, we fix the database name to "todolist" and the user name to "todolist" as well.
+We only let the user password configurable ("db_account_password" variable).
+
+Open "10_webapp/05_rds/main.tf":
+```hcl-terraform
+// ...
+
+resource "alicloud_db_instance" "app_rds" {
+  // ...
+  instance_type = "rds.mysql.t1.small"
+  zone_id = "... Zone A + B ..."
+  vswitch_id = "... ID of the VSwitch in zone A ..."
+  security_ips = [
+    "... VPC IP address range ..."
+  ]
+}
+
+resource "alicloud_db_database" "app_rds_db" {
+  instance_id = "${alicloud_db_instance.app_rds.id}"
+  name = "todolist"
+  character_set = "utf8"
+}
+
+resource "alicloud_db_account" "app_rds_db_account" {
+  instance_id = "${alicloud_db_instance.app_rds.id}"
+  name = "todolist"
+  password = "${var.db_account_password}"
+  type = "Normal"
+}
+
+resource "alicloud_db_account_privilege" "app_rds_db_account_privilege" {
+  instance_id = "${alicloud_db_instance.app_rds.id}"
+  account_name = "${alicloud_db_account.app_rds_db_account.name}"
+  privilege = "ReadWrite"
+  db_names = [
+    "${alicloud_db_database.app_rds_db.name}"
+  ]
+}
+```
+Note: Like with the SLB, the RDS database uses a master/slave architecture. The `zone_id` is set via a datasource
+(which provides a value like "ap-southeast-1MAZ1(a,b)"). The master is created in the availability zone of the 
+given `vswitch_id`.
+
+Let's create and configure the database. Execute the following instructions in your terminal:
+```bash
+# Go to the 10_webapp/05_rds folder
+cd ../10_webapp/05_rds
+
+# Initialize Terraform
+terraform init
+
+# Create the database
+terraform apply  \
+    -var 'env=dev' \
+    -var 'db_account_password=YourD@tabasePassw0rd'
+
+# Display the DB connection string
+export RDS_CONNECTION_STRING=$(terraform output app_rds_connection_string)
+echo $RDS_CONNECTION_STRING
+```
+The last command should print something like "rm-gs522kuv3u5m91256.mysql.singapore.rds.aliyuncs.com". This value come
+from the "output.tf" file:
+```hcl-terraform
+output "app_rds_connection_string" {
+  value = "${alicloud_db_instance.app_rds.connection_string}"
+}
+```
+This is the hostname we will use in our ECS instances to connect them to the database.
+
+The next sub-group "10_webapp/10_image" is a bit different: the Terraform scripts are only used to obtain information
+from Alibaba Cloud (the image ID of Ubuntu Linux and an ECS instance type). The "main.tf" file only contains
+datasources:
+```hcl-terraform
+data "alicloud_images" "ubuntu_images" {
+  owners = "system"
+  name_regex = "ubuntu_16[a-zA-Z0-9_]+64"
+  most_recent = true
+}
+
+data "alicloud_instance_types" "instance_types_zone_0" {
+  cpu_core_count = 1
+  memory_size = 2
+  // ...
+}
+```
+The "output.tf" file allows us to extract information from these datasources:
+```hcl-terraform
+output "image_id" {
+  value = "${data.alicloud_images.ubuntu_images.images.0.id}"
+}
+
+output "instance_type" {
+  value = "${data.alicloud_instance_types.instance_types_zone_0.instance_types.0.id}"
+}
+```
+
+The "app_image.json" file is a Packer script:
+```json
+{
+  "variables": {
+    "access_key": "{{env `ALICLOUD_ACCESS_KEY`}}",
+    "secret_key": "{{env `ALICLOUD_SECRET_KEY`}}",
+    "region_id": "{{env `ALICLOUD_REGION`}}",
+    "source_image": "",
+    "image_version": "",
+    "instance_type": "",
+    "application_path": "",
+    "properties_path": "",
+    "environment": "",
+    "rds_connection_string": "",
+    "rds_database": "",
+    "rds_account": "",
+    "rds_password": ""
+  },
+  "builders": [
+    {
+      "type": "alicloud-ecs",
+      "access_key": "{{user `access_key`}}",
+      "secret_key": "{{user `secret_key`}}",
+      "region": "{{user `region_id`}}",
+      "image_name": "sample-app-image-{{user `environment`}}",
+      "image_description": "To-Do list web application ({{user `environment`}} environment).",
+      "image_version": "{{user `image_version`}}",
+      "source_image": "{{user `source_image`}}",
+      "ssh_username": "root",
+      "instance_type": "{{user `instance_type`}}",
+      "io_optimized": "true",
+      "internet_charge_type": "PayByTraffic",
+      "image_force_delete": "true"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "apt-get -y update",
+        "apt-get -y install default-jdk",
+        "mkdir -p /opt/todo-list",
+        "mkdir -p /etc/todo-list"
+      ],
+      "pause_before": "30s"
+    },
+    {
+      "type": "file",
+      "source": "{{user `application_path`}}",
+      "destination": "/opt/todo-list/todo-list.jar"
+    },
+    {
+      "type": "file",
+      "source": "{{user `properties_path`}}",
+      "destination": "/etc/todo-list/application.properties"
+    },
+    {
+      "type": "file",
+      "source": "resources/todo-list.service",
+      "destination": "/etc/systemd/system/todo-list.service"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "export RDS_CONNECTION_STRING=\"{{user `rds_connection_string`}}\"",
+        "export RDS_DATABASE=\"{{user `rds_database`}}\"",
+        "export RDS_ACCOUNT=\"{{user `rds_account`}}\"",
+        "export RDS_PASSWORD=\"{{user `rds_password`}}\"",
+        "export DATASOURCE_URL=\"jdbc:mysql://$RDS_CONNECTION_STRING:3306/$RDS_DATABASE?useSSL=false\"",
+        "export ESCAPED_DATASOURCE_URL=$(echo $DATASOURCE_URL | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_RDS_ACCOUNT=$(echo $RDS_ACCOUNT | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_RDS_PASSWORD=$(echo $RDS_PASSWORD | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "sed -i \"s/\\(spring\\.datasource\\.url=\\).*\\$/\\1${ESCAPED_DATASOURCE_URL}/\" /etc/todo-list/application.properties",
+        "sed -i \"s/\\(spring\\.datasource\\.username=\\).*\\$/\\1${ESCAPED_RDS_ACCOUNT}/\" /etc/todo-list/application.properties",
+        "sed -i \"s/\\(spring\\.datasource\\.password=\\).*\\$/\\1${ESCAPED_RDS_PASSWORD}/\" /etc/todo-list/application.properties",
+        "systemctl enable todo-list.service"
+      ]
+    }
+  ]
+}
+```
+This script create a VM image by executing the following steps:
+* Create an ECS instance based on Ubuntu Linux;
+* Install Java JDK;
+* Copy our packaged application;
+* Copy our application configuration file (application.properties);
+* Copy a [Systemd](https://www.freedesktop.org/wiki/Software/systemd/) script (more on this later);
+* Set correct values in our application configuration file;
+* Enable our Systemd script in order to run our application automatically when the ECS instance starts.
+
+The systemd script is located in the "resources" folder:
+```
+[Unit]
+Description=todo-list
+After=syslog.target
+After=network.target[Service]
+
+[Service]
+ExecStart=/usr/bin/java -Xmx1800m -jar /opt/todo-list/todo-list.jar --spring.config.location=file:/etc/todo-list/application.properties
+SuccessExitStatus=143
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=todo-list
+
+[Install]
+WantedBy=multi-user.target
+```
+This script instructs Systemd about how to start the application, how to restart it automatically if it crashes, and
+where to print the logs (via [syslog](https://en.wikipedia.org/wiki/Syslog)).
+
+Let's create our VM image, in your terminal run:
+```bash
+# Go to the 10_webapp/10_image folder
+cd ../10_image
+
+# Initialize Terraform
+terraform init
+
+# Request some information for the next step
+terraform apply  -var 'env=dev'
+export SOURCE_IMAGE=$(terraform output image_id)
+export INSTANCE_TYPE=$(terraform output instance_type)
+
+# Go to the application root folder and package it
+cd ~/projects/todolist
+mvn clean package -DskipTests=true
+export APPLICATION_PATH=$(pwd)/$(ls target/*.jar)
+export PROPERTIES_PATH=$(pwd)/src/main/resources/application.properties
+
+# Go back to the 10_webapp/10_image folder
+cd infrastructure/10_webapp/10_image
+
+# Create the VM image
+packer build \
+    -var "source_image=$SOURCE_IMAGE" \
+    -var "image_version=1.0.0" \
+    -var "instance_type=$INSTANCE_TYPE" \
+    -var "application_path=$APPLICATION_PATH" \
+    -var "properties_path=$PROPERTIES_PATH" \
+    -var "environment=dev" \
+    -var "rds_connection_string=$RDS_CONNECTION_STRING" \
+    -var "rds_database=todolist" \
+    -var "rds_account=todolist" \
+    -var "rds_password=YourD@tabasePassw0rd" \
+    app_image.json
+```
+You can check the newly created image via the web console:
+* Open the [ECS console](https://ecs.console.aliyun.com/);
+* Select "Images" in the left menu;
+* If necessary, select your region on the top of the page;
+* You should be able to see your new image named "sample-app-image-dev".
+
+Now comes the final step: creating ECS instances with our image and attach them to the SLB.
+Open the file "10_webapp/15_ecs/main.tf":
+```hcl-terraform
+// ...
+
+// Our custom application image
+data "alicloud_images" "app_images" {
+  owners = "self"
+  name_regex = "sample-app-image-${var.env}"
+  most_recent = true
+}
+
+// ...
+
+// One ECS instance per availability zone
+resource "alicloud_instance" "app_ecs_zone_0" {
+  // ...
+  image_id = "${data.alicloud_images.app_images.images.0.id}"
+  // ...
+  vswitch_id = "... VSwitch in zone A ..."
+  // ...
+}
+resource "alicloud_instance" "app_ecs_zone_1" {
+  // ...
+  image_id = "${data.alicloud_images.app_images.images.0.id}"
+  // ...
+  vswitch_id = "... VSwitch in zone B ..."
+  // ...
+}
+
+// SLB attachments
+resource "alicloud_slb_attachment" "app_slb_attachment" {
+  load_balancer_id = "... SLB ID ..."
+  instance_ids = [
+    "${alicloud_instance.app_ecs_zone_0.id}",
+    "${alicloud_instance.app_ecs_zone_1.id}"
+  ]
+}
+```
+
+Let's complete our infrastructure. Run the following instructions in your terminal:
+```bash
+# Go to the 10_webapp/15_ecs folder
+cd ../15_ecs
+
+# Initialize Terraform
+terraform init
+
+# Create the ECS instances and attach them to our SLB
+terraform apply  \
+    -var 'env=dev' \
+    -var 'ecs_root_password=YourR00tP@ssword' \
+    -parallelism=1
+```
+Note: as you can see, the last command set the
+[parallelism](https://www.terraform.io/docs/commands/apply.html#parallelism-n) parameter to one. This is necessary
+because we configured our application to update the database schema during its initialisation (with Flyway); by
+creating one ECS instance at a time, we avoid potential data race issues (the first instance updates the schema, the
+next one simply checks that nothing needs to be done).
+
+Let's check the deployment of our application:
+* Open the [SLB console](https://slb.console.aliyun.com/);
+* Select your region if necessary:
+
+Your new SLB should look like this:
+
+![Application SLB](images/application-slb-dev.png)
+
+Click on the chevron icon next to "Default Server Group 2" and click on the first ECS instance. You should see some
+information about this instance. The "Network (Internal)" graph is interesting:
+
+![Application instance network graph](images/application-ecs-instance-network-graph.png)
+
+The small waves are the result of the SLB health check (HTTP requests to the "/health" endpoint).
+
+Let's play with the application! Open a new web browser tab and navigate to your domain (like
+http://dev.my-sample-domain.xyz/). You should obtain something like this:
+
+![Application running in Alibaba Cloud](images/application-running.png)
+
+Look at the top-right of the page: the hostname and instance ID allow you to know which ECS instance responded to
+your HTTP request. Refresh the page several times and look what happen:
+
+![Application on first zone](images/application-instance-id-zone-0.png)
+
+![Application on second zone](images/application-instance-id-zone-1.png)
+
+As you can see, your HTTP requests are distributed among your two ECS instances.
