@@ -686,5 +686,191 @@ As you can see the scripts are organized like this:
   * 10_image - build the VM image configured to connect to the MySQL database
   * 15_ecs - setup the ECS instances with the VM image
 
-Note: the prefix "xx_" in the folder names is just a way to show them sorted logically with the `ls` command.
+Note: the prefix "xx_" in the folder names is just a way to have them sorted when displayed with the `ls` command.
+
+Let's have a look at the files in the "05_vpc_slb_eip_domain" folder. The "variables.tf" file contains 3 entries:
+```hcl-terraform
+variable "env" {
+  description = "Environment (dev, pre-prod, prod)"
+  default = "dev"
+}
+
+variable "domain_name" {
+  description = "Domain name of the project."
+  default = "my-sample-domain.xyz"
+}
+
+variable "sub_domain_name" {
+  description = "Domain name corresponding to the environment (dev, pre-prod, www)."
+  default = "dev"
+}
+```
+The description of each variable should be self-explanatory. We will pass the variable values when invoking
+the `terraform apply` command.
+
+Let's check the "main.tf" file. The first part declares a VPC, one VSwitch per availability zone, and a security
+group that accepts incoming traffic from the port 8080 (the default port of our application):
+```hcl-terraform
+// ...
+resource "alicloud_vpc" "app_vpc" { /* ... */ }
+
+// One VSwitch per availability zone
+resource "alicloud_vswitch" "app_vswitch_zone_0" {
+  availability_zone = "... Zone A ..."
+  vpc_id = "${alicloud_vpc.app_vpc.id}"
+  // ...
+}
+resource "alicloud_vswitch" "app_vswitch_zone_1" {
+  availability_zone = "... Zone B ..."
+  vpc_id = "${alicloud_vpc.app_vpc.id}"
+  // ...
+}
+
+// Security group and rule
+resource "alicloud_security_group" "app_security_group" {
+  vpc_id = "${alicloud_vpc.app_vpc.id}"
+  // ...
+}
+resource "alicloud_security_group_rule" "accept_8080_rule" {
+  type = "ingress"
+  ip_protocol = "tcp"
+  nic_type = "intranet"
+  policy = "accept"
+  port_range = "8080/8080"
+  priority = 1
+  security_group_id = "${alicloud_security_group.app_security_group.id}"
+  cidr_ip = "0.0.0.0/0"
+}
+```
+The next part declares the server load balancer:
+```hcl-terraform
+resource "alicloud_slb" "app_slb" {
+  // ...
+  vswitch_id = "${alicloud_vswitch.app_vswitch_zone_0.id}"
+}
+
+resource "alicloud_slb_listener" "app_slb_listener_http" {
+  load_balancer_id = "${alicloud_slb.app_slb.id}"
+
+  backend_port = 8080
+  frontend_port = 80
+  bandwidth = -1
+  protocol = "http"
+
+  health_check = "on"
+  health_check_type = "http"
+  health_check_connect_port = 8080
+  health_check_uri = "/health"
+  health_check_http_code = "http_2xx"
+}
+```
+Note 0: the [SLB architecture](https://www.alibabacloud.com/help/doc-detail/27544.htm) is composed of a master and a
+slave. The `vswitch_id` corresponds to the availability zone where the master is located, the salve is automatically
+created in another zone. If the master fails, HTTP requests are transferred to the slave (within a delay of 30 sec).
+For more information about failover scenarios, please read the
+[official documentation](https://www.alibabacloud.com/help/doc-detail/27543.htm).
+
+Note 1: as you can see the port redirection (80 to 8080) is defined in the SLB listener. You can also see how the SLB
+uses our [Health check web service](#health-check-web-service) to determine whether a particular ECS instance is
+behaving normally or not.
+
+The last part of the "main.tf" file declares an EIP, attaches it to our SLB and register a DNS entry:
+```hcl-terraform
+resource "alicloud_eip" "app_eip" { /* ... */ }
+
+resource "alicloud_eip_association" "app_eip_association" {
+  allocation_id = "${alicloud_eip.app_eip.id}"
+  instance_id = "${alicloud_slb.app_slb.id}"
+}
+
+resource "alicloud_dns_record" "app_record_oversea" {
+  name = "${var.domain_name}"
+  type = "A"
+  host_record = "${var.sub_domain_name}"
+  routing = "oversea"
+  value = "${alicloud_eip.app_eip.ip_address}"
+  ttl = 600
+}
+```
+
+There is currently a bug in the `alicloud_dns_record` resource. This is the reason why we will have to run the
+`terraform apply` command twice in the folder "05_vpc_slb_eip_domain". This is also the reason why we had to create
+"06_domain_step_2/main.tf":
+```hcl-terraform
+data "alicloud_dns_records" "app_record_overseas" {
+  domain_name = "${var.domain_name}"
+  type = "A"
+  host_record_regex = "${var.sub_domain_name}"
+  line = "oversea"
+}
+
+resource "alicloud_dns_record" "app_record_default" {
+  name = "${var.domain_name}"
+  type = "A"
+  host_record = "${var.sub_domain_name}"
+  routing = "default"
+  value = "${data.alicloud_dns_records.app_record_overseas.records.0.value}"
+  ttl = 600
+}
+```
+
+Note: this workaround is useful if you want to make your web application available in Mainland China
+(`routing = "default"`) and outside (`routing = "oversea"`).
+
+Let's build the "basis group" of our infrastructure. Open your terminal and run:
+```bash
+# Go to the 05_vpc_slb_eip_domain folder
+cd ~/projects/todolist/infrastructure/05_vpc_slb_eip_domain
+
+# Configure Terraform
+export ALICLOUD_ACCESS_KEY="your-accesskey-id"
+export ALICLOUD_SECRET_KEY="your-accesskey-secret"
+export ALICLOUD_REGION="your-region-id"
+
+# Initialize Terraform (download the latest version of the alicloud provider)
+terraform init
+
+# Create our infrastructure (note: adapt the domain_name according to your setup)
+terraform apply  \
+    -var 'env=dev' \
+    -var 'domain_name=my-sample-domain.xyz' \
+    -var 'sub_domain_name=dev'
+
+# Re-run the last command because of the bug in "alicloud_dns_record"
+terraform apply  \
+    -var 'env=dev' \
+    -var 'domain_name=my-sample-domain.xyz' \
+    -var 'sub_domain_name=dev'
+
+# Go to the 06_domain_step_2 folder
+cd ../06_domain_step_2
+
+# Initialize Terraform
+terraform init
+
+# Finish the creation of the "basis group"
+terraform apply  \
+    -var 'env=dev' \
+    -var 'domain_name=my-sample-domain.xyz' \
+    -var 'sub_domain_name=dev'
+```
+
+You can check that your cloud resources have been successfully created by browsing the
+[VPC console](https://vpc.console.aliyun.com/) and by following links to related resources.
+
+You can also check your new domain:
+```bash
+# Note: use your top domain name
+nslookup dev.my-sample-domain.xyz
+```
+It should output something like this:
+```
+Server:		30.14.129.245
+Address:	30.14.129.245#53
+
+Non-authoritative answer:
+Name:	dev.my-sample-domain.xyz
+Address: 161.117.2.245
+```
+The last IP address should be your EIP.
 
