@@ -11,10 +11,9 @@ layout: default
 4. [VM image generation with Packer](#vm-image-generation-with-packer)
 5. [Health check web service](#health-check-web-service)
 6. [Application infrastructure](#application-infrastructure)
-7. Infrastructure pipeline stage
-8. Database update pipeline stage
-9. Application installation pipeline stage
-10. Pre-production and production environments
+7. [Terraform state files management](#terraform-state-files-management)
+8. [Delivery pipeline stage](#delivery-pipeline-stage)
+9. Pre-production and production environments
 
 ## Introduction
 In this part we will finally deploy our application in the cloud!
@@ -1232,6 +1231,11 @@ pipeline to re-create and update it). Open a terminal and run:
 # Go to the last sub-group folder
 cd ~/projects/todolist/infrastructure/10_webapp/15_ecs/
 
+# Configure Terraform
+export ALICLOUD_ACCESS_KEY="your-accesskey-id"
+export ALICLOUD_SECRET_KEY="your-accesskey-secret"
+export ALICLOUD_REGION="your-region-id"
+
 # Delete the ECS instances
 terraform destroy
 
@@ -1247,3 +1251,102 @@ terraform destroy
 cd ../05_vpc_slb_eip_domain
 terraform destroy
 ```
+
+## Terraform state files management
+Terraform generates [tfstate files](https://www.terraform.io/docs/state/) when we run the `terraform apply` command;
+they allow Terraform to keep track of existing cloud resources it has created during previous executions.
+
+In the context of pipeline execution, it is crucial to store tfstate files into an external location, because local
+files are deleted when a pipeline job terminates. As a solution we will use the OSS bucket we have already created
+[to store our GitLab backups](part_01_gitlab_installation_and_configuration.md).
+
+The tfstate files are managed by [Terraform backends](https://www.terraform.io/docs/backends/index.html). The default
+one is the [local backend](https://www.terraform.io/docs/backends/types/local.html), its default configuration is to
+store tfstate files alongside our scripts. There are other types of backends but unfortunately none of them is
+directly compatible with OSS. One solution is to combine the local backend with
+[OSSFS](https://github.com/aliyun/ossfs/): we mount our OSS bucket as a local folder and save the tfstate files inside.
+
+In order to implement this solution, we need to give the permissions to our Docker containers (the ones that run our
+pipeline jobs) to use [FUSE](https://en.wikipedia.org/wiki/Filesystem_in_Userspace), the underlying technology used
+by OSSFS:
+* Open the [ECS console](https://ecs.console.aliyun.com/);
+* Click on the "Instance" item in the left menu;
+* Select your region if necessary;
+* Search for your instance named "devops-simple-app-gitlab-runner";
+* Click on the "Connect" link on the left-side of your instance;
+* The VNC console should appear: copy the VNC password displayed in the popup and paste it to the next one;
+* Authenticate yourself with the "root" user and the password you set when you
+  [configured GitLab](part_01_gitlab_installation_and_configuration.md#gitlab-runner-installation-and-configuration);
+* Edit the GitLab Runner configuration file with this command:
+  ```bash
+  nano /etc/gitlab-runner/config.toml
+  ```
+* The configuration file should look like this:
+  ```
+  concurrent = 1
+  check_interval = 0
+  
+  [[session_server]]
+    session_timeout = 1800
+  
+  [[runners]]
+    name = "devops-simple-app-gitlab-runner"
+    url = "https://gitlab.my-sample-domain.xyz/"
+    token = "8943412dd85a41002f9f803f21bdbf"
+    executor = "docker"
+    [runners.docker]
+      tls_verify = false
+      image = "alpine:latest"
+      privileged = false
+      disable_entrypoint_overwrite = false
+      oom_kill_disable = false
+      disable_cache = false
+      volumes = ["/cache"]
+      shm_size = 0
+    [runners.cache]
+      [runners.cache.s3]
+      [runners.cache.gcs]
+  ```
+* Add the following lines under "privileged = false":
+  ```
+  cap_add = ["SYS_ADMIN"]
+  devices = ["/dev/fuse"]
+  ```
+  The file should now look like this:
+  ```
+    concurrent = 1
+    check_interval = 0
+    
+    [[session_server]]
+      session_timeout = 1800
+    
+    [[runners]]
+      name = "devops-simple-app-gitlab-runner"
+      url = "https://gitlab.my-sample-domain.xyz/"
+      token = "8943412dd85a41002f9f803f21bdbf"
+      executor = "docker"
+      [runners.docker]
+        tls_verify = false
+        image = "alpine:latest"
+        privileged = false
+        cap_add = ["SYS_ADMIN"]
+        devices = ["/dev/fuse"]
+        disable_entrypoint_overwrite = false
+        oom_kill_disable = false
+        disable_cache = false
+        volumes = ["/cache"]
+        shm_size = 0
+      [runners.cache]
+        [runners.cache.s3]
+        [runners.cache.gcs]
+    ```
+* Save and quit by pressing CTRL+X;
+* Restart the GitLab Runner via the following command:
+  ```bash
+  gitlab-runner restart
+  ```
+* Quit the VNC session by entering the command `exit` and by closing the web browser tab.
+
+## Delivery pipeline stage
+It is now time to add a new stage in our pipeline that will execute our Terraform and Packer scripts.
+
