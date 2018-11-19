@@ -13,7 +13,7 @@ layout: default
 6. [Application infrastructure](#application-infrastructure)
 7. [Terraform state files management](#terraform-state-files-management)
 8. [Delivery pipeline stage](#delivery-pipeline-stage)
-9. Pre-production and production environments
+9. [Pre-production and production environments](#pre-production-and-production-environments)
 
 ## Introduction
 In this part we will finally deploy our application in the cloud!
@@ -988,16 +988,16 @@ The "app_image.json" file is a Packer script:
     "access_key": "{{env `ALICLOUD_ACCESS_KEY`}}",
     "secret_key": "{{env `ALICLOUD_SECRET_KEY`}}",
     "region_id": "{{env `ALICLOUD_REGION`}}",
-    "source_image": "",
-    "image_version": "",
-    "instance_type": "",
-    "application_path": "",
-    "properties_path": "",
-    "environment": "",
-    "rds_connection_string": "",
-    "rds_database": "",
-    "rds_account": "",
-    "rds_password": ""
+    "source_image": "{{env `SOURCE_IMAGE`}}",
+    "image_version": "{{env `IMAGE_VERSION`}}",
+    "instance_type": "{{env `INSTANCE_TYPE`}}",
+    "application_path": "{{env `APPLICATION_PATH`}}",
+    "properties_path": "{{env `PROPERTIES_PATH`}}",
+    "environment": "{{env `ENVIRONMENT`}}",
+    "rds_connection_string": "{{env `RDS_CONNECTION_STRING`}}",
+    "rds_database": "{{env `RDS_DATABASE`}}",
+    "rds_account": "{{env `RDS_ACCOUNT`}}",
+    "rds_password": "{{env `RDS_PASSWORD`}}"
   },
   "builders": [
     {
@@ -1005,7 +1005,7 @@ The "app_image.json" file is a Packer script:
       "access_key": "{{user `access_key`}}",
       "secret_key": "{{user `secret_key`}}",
       "region": "{{user `region_id`}}",
-      "image_name": "sample-app-image-{{user `environment`}}",
+      "image_name": "sample-app-image-{{user `environment`}}-{{user `image_version`}}",
       "image_description": "To-Do list web application ({{user `environment`}} environment).",
       "image_version": "{{user `image_version`}}",
       "source_image": "{{user `source_image`}}",
@@ -1117,18 +1117,12 @@ export PROPERTIES_PATH=$(pwd)/src/main/resources/application.properties
 cd infrastructure/10_webapp/10_image
 
 # Create the VM image
-packer build \
-    -var "source_image=$SOURCE_IMAGE" \
-    -var "image_version=1.0.0" \
-    -var "instance_type=$INSTANCE_TYPE" \
-    -var "application_path=$APPLICATION_PATH" \
-    -var "properties_path=$PROPERTIES_PATH" \
-    -var "environment=dev" \
-    -var "rds_connection_string=$RDS_CONNECTION_STRING" \
-    -var "rds_database=todolist" \
-    -var "rds_account=todolist" \
-    -var "rds_password=YourD@tabasePassw0rd" \
-    app_image.json
+export IMAGE_VERSION=1
+export ENVIRONMENT=dev
+export RDS_DATABASE=todolist
+export RDS_ACCOUNT=todolist
+export RDS_PASSWORD="YourD@tabasePassw0rd"
+packer build app_image.json
 ```
 You can check the newly created image via the web console:
 * Open the [ECS console](https://ecs.console.aliyun.com/);
@@ -1307,12 +1301,7 @@ by OSSFS:
       [runners.cache.s3]
       [runners.cache.gcs]
   ```
-* Add the following lines under "privileged = false":
-  ```
-  cap_add = ["SYS_ADMIN"]
-  devices = ["/dev/fuse"]
-  ```
-  The file should now look like this:
+* Change "privileged = false" to "privileged = true". The file should now look like this:
   ```
     concurrent = 1
     check_interval = 0
@@ -1328,9 +1317,7 @@ by OSSFS:
       [runners.docker]
         tls_verify = false
         image = "alpine:latest"
-        privileged = false
-        cap_add = ["SYS_ADMIN"]
-        devices = ["/dev/fuse"]
+        privileged = true
         disable_entrypoint_overwrite = false
         oom_kill_disable = false
         disable_cache = false
@@ -1348,5 +1335,379 @@ by OSSFS:
 * Quit the VNC session by entering the command `exit` and by closing the web browser tab.
 
 ## Delivery pipeline stage
-It is now time to add a new stage in our pipeline that will execute our Terraform and Packer scripts.
+We can now put everything together and integrate our infrastructure scripts into our CI/CD pipeline.
 
+For that we need to open the ".gitlab-ci.yml" file and apply the following changes:
+```yaml
+# ...
+variables:
+  # ...
+  ALICLOUD_ACCESS_KEY: "your-accesskey-id"
+  ALICLOUD_SECRET_KEY: "your-accesskey-secret"
+  ALICLOUD_REGION: "your-region-id"
+  GITLAB_BUCKET_NAME: "gitlab-my-sample-domain-xyz"
+  GITLAB_BUCKET_ENDPOINT: "http://oss-ap-southeast-1-internal.aliyuncs.com"
+  DOMAIN_NAME: "my-sample-domain.xyz"
+  DB_ACCOUNT_PASSWORD: "your-db-password"
+  ECS_ROOT_PASSWORD: "your-ecs-root-password"
+  OSSFS_VERSION: "1.80.5"
+  TERRAFORM_VERSION: "0.11.10"
+  PACKER_VERSION: "1.3.2"
+# ...
+stages:
+  - build
+  - quality
+  - deploy
+# ...
+deploy:
+  stage: deploy
+  image: ubuntu:16.04
+  script:
+    - "export ENV_NAME=$(./gitlab-ci-scripts/deploy/get_env_name_by_branch_name.sh $CI_COMMIT_REF_NAME)"
+    - "export SUB_DOMAIN_NAME=$(./gitlab-ci-scripts/deploy/get_sub_domain_name_by_branch_name.sh $CI_COMMIT_REF_NAME)"
+    - "export BUCKET_LOCAL_PATH=/mnt/oss_bucket"
+    - "./gitlab-ci-scripts/deploy/install_tools.sh"
+    - "./gitlab-ci-scripts/deploy/mount_ossfs.sh"
+    - "./gitlab-ci-scripts/deploy/build_basis_infra.sh"
+    - "./gitlab-ci-scripts/deploy/build_webapp_infra.sh"
+    - "umount $BUCKET_LOCAL_PATH"
+    - "sleep 10"
+  only:
+    - master
+    - pre-production
+    - production
+```
+Note: the complete version of this file can be found in "sample-app/version3/.gitlab-ci.yml".
+
+As you can see, we have added a third stage named "deploy" after "build" and "quality". The `only` property means that
+this stage is only executed for the branches "master", "pre-production" and "production"; it means that a commit in a
+feature branch only triggers the "build" and "quality" stages.
+
+In addition, because this stage is quite large, it has been split into multiple Bash scripts located in the
+folder "gitlab-ci-scripts/deploy":
+* "get_env_name_by_branch_name.sh" is quite simple: it gives the environment name ("dev", "pre-prod" and "prod") for the
+  current branch ("master", "pre-production" and "production"):
+  ```bash
+  #!/usr/bin/env bash
+  #
+  # Print the environment name according to the branch name.
+  #
+  # Parameters:
+  #   - $1 = BRANCH_NAME
+  #
+  
+  BRANCH_NAME=$1
+  ENV_NAME_MASTER="dev"
+  ENV_NAME_PRE_PRODUCTION="pre-prod"
+  ENV_NAME_PRODUCTION="prod"
+  
+  if [[ ${BRANCH_NAME} == "production" ]]; then
+      echo ${ENV_NAME_PRODUCTION};
+  elif [[ ${BRANCH_NAME} == "pre-production" ]]; then
+      echo ${ENV_NAME_PRE_PRODUCTION};
+  else
+      echo ${ENV_NAME_MASTER};
+  fi
+  ```
+* "get_sub_domain_name_by_branch_name.sh" is similar to "get_env_name_by_branch_name.sh", but it gives the sub-domain
+  name instead ("dev", "pre-prod" and "www"):
+  ```bash
+  #!/usr/bin/env bash
+  #
+  # Print the sub-domain name according to the branch name.
+  #
+  # Parameters:
+  #   - $1 = BRANCH_NAME
+  #
+  
+  BRANCH_NAME=$1
+  SUB_DOMAIN_NAME_MASTER="dev"
+  SUB_DOMAIN_NAME_PRE_PRODUCTION="pre-prod"
+  SUB_DOMAIN_NAME_PRODUCTION="www"
+  
+  if [[ ${BRANCH_NAME} == "production" ]]; then
+      echo ${SUB_DOMAIN_NAME_PRODUCTION};
+  elif [[ ${BRANCH_NAME} == "pre-production" ]]; then
+      echo ${SUB_DOMAIN_NAME_PRE_PRODUCTION};
+  else
+      echo ${SUB_DOMAIN_NAME_MASTER};
+  fi
+  ```
+* "install_tools.sh" installs [OSSFS](https://github.com/aliyun/ossfs), [Terraform](https://www.terraform.io/) and
+  [Packer](https://www.packer.io/) on top of the [Ubuntu Docker image](https://hub.docker.com/_/ubuntu/):
+  ```bash
+  #!/usr/bin/env bash
+  #
+  # Install OSSFS, Terraform and Packer.
+  #
+  # Required global variables:
+  #   - OSSFS_VERSION
+  #   - TERRAFORM_VERSION
+  #   - PACKER_VERSION
+  #
+  
+  echo "Installing OSSFS version ${OSSFS_VERSION}, Terraform version ${TERRAFORM_VERSION} and Packer version ${PACKER_VERSION}..."
+  
+  # Create a temporary folder
+  mkdir -p installation_tmp
+  cd installation_tmp
+  
+  # Install OSSFS
+  apt-get -y update
+  apt-get -y install gdebi-core wget unzip
+  wget "https://github.com/aliyun/ossfs/releases/download/v${OSSFS_VERSION}/ossfs_${OSSFS_VERSION}_ubuntu16.04_amd64.deb"
+  gdebi -n "ossfs_${OSSFS_VERSION}_ubuntu16.04_amd64.deb"
+  
+  # Install Terraform
+  wget "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+  unzip "terraform_${TERRAFORM_VERSION}_linux_amd64.zip" -d /usr/local/bin/
+  
+  # Install Packer
+  wget "https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip"
+  unzip "packer_${PACKER_VERSION}_linux_amd64.zip" -d /usr/local/bin/
+  
+  # Display the version of installed tools
+  echo "Installed Terraform version:"
+  terraform version
+  echo "Installed Packer version:"
+  packer version
+  
+  # Delete the temporary folder
+  cd ..
+  rm -rf installation_tmp
+  
+  echo "Installation of OSSFS, Terraform and Packer completed."
+  ```
+* "mount_ossfs.sh" makes our OSS bucket accessible like a normal folder:
+  ```bash
+  #!/usr/bin/env bash
+  #
+  # Mount an OSS bucket with OSSFS.
+  #
+  # Required global variables:
+  #   - ALICLOUD_ACCESS_KEY
+  #   - ALICLOUD_SECRET_KEY
+  #   - GITLAB_BUCKET_NAME
+  #   - GITLAB_BUCKET_ENDPOINT
+  #   - BUCKET_LOCAL_PATH
+  #
+  
+  echo "Mounting the OSS bucket ${GITLAB_BUCKET_NAME} (endpoint ${GITLAB_BUCKET_ENDPOINT}) into ${BUCKET_LOCAL_PATH}..."
+  
+  # Configure OSSFS
+  echo "$GITLAB_BUCKET_NAME:$ALICLOUD_ACCESS_KEY:$ALICLOUD_SECRET_KEY" > /etc/passwd-ossfs
+  chmod 640 /etc/passwd-ossfs
+  
+  # Mount our bucket
+  mkdir -p "$BUCKET_LOCAL_PATH"
+  ossfs "$GITLAB_BUCKET_NAME" "$BUCKET_LOCAL_PATH" -ourl="$GITLAB_BUCKET_ENDPOINT"
+  
+  echo "OSS bucket ${GITLAB_BUCKET_NAME} mounted with success into ${BUCKET_LOCAL_PATH}."
+  ```
+* "build_basis_infra.sh" runs the Terraform scripts to build the basis infrastructure:
+  ```bash
+  #!/usr/bin/env bash
+  #
+  # Build the basis infrastructure (VPC, VSwitches, ...)
+  #
+  # Required global variables:
+  #   - ALICLOUD_ACCESS_KEY
+  #   - ALICLOUD_SECRET_KEY
+  #   - ALICLOUD_REGION
+  #   - ENV_NAME
+  #   - DOMAIN_NAME
+  #   - SUB_DOMAIN_NAME
+  #   - BUCKET_LOCAL_PATH
+  #
+  
+  echo "Building the basis infrastructure (environment: ${ENV_NAME},\
+   region: ${ALICLOUD_REGION},\
+   domain: ${DOMAIN_NAME},\
+   sub-domain: ${SUB_DOMAIN_NAME})..."
+  
+  # Set values for Terraform variables
+  export TF_VAR_env=${ENV_NAME}
+  export TF_VAR_domain_name=${DOMAIN_NAME}
+  export TF_VAR_sub_domain_name=${SUB_DOMAIN_NAME}
+  
+  # Run the Terraform scripts in 05_vpc_slb_eip_domain
+  cd infrastructure/05_vpc_slb_eip_domain
+  mkdir -p "$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/05_vpc_slb_eip_domain"
+  terraform init -input=false -backend-config="path=$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/05_vpc_slb_eip_domain/terraform.tfstate"
+  terraform apply -input=false -auto-approve
+  terraform apply -input=false -auto-approve
+  # Note: the last line has to be executed twice because of a bug in the alicloud_dns_record resource
+  
+  # Run the Terraform scripts in 06_domain_step_2
+  cd ../06_domain_step_2
+  mkdir -p "$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/06_domain_step_2"
+  terraform init -input=false -backend-config="path=$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/06_domain_step_2/terraform.tfstate"
+  terraform apply -input=false -auto-approve
+  
+  cd ../..
+  
+  echo "Basis infrastructure successfully built (environment: ${ENV_NAME}, region: ${ALICLOUD_REGION})."
+  ```
+  Note: you can see how we combine OSSFS with the
+  [local backend](https://www.terraform.io/docs/backends/types/local.html) in order to save the tfstate files in our
+  OSS bucket.
+* "build_webapp_infra.sh" runs the Terraform scripts to build the application infrastructure:
+  ```bash
+  #!/usr/bin/env bash
+  #
+  # Build the web application infrastructure (RDS, VM image, ECS, ...)
+  #
+  # Required global variables:
+  #   - ALICLOUD_ACCESS_KEY
+  #   - ALICLOUD_SECRET_KEY
+  #   - ALICLOUD_REGION
+  #   - ENV_NAME
+  #   - DB_ACCOUNT_PASSWORD
+  #   - ECS_ROOT_PASSWORD
+  #   - BUCKET_LOCAL_PATH
+  #   - CI_PIPELINE_IID
+  #
+  
+  echo "Building the application infrastructure (environment: ${ENV_NAME}, region: ${ALICLOUD_REGION})..."
+  
+  # Set values for Terraform and Packer variables
+  export TF_VAR_env=${ENV_NAME}
+  export TF_VAR_db_account_password=${DB_ACCOUNT_PASSWORD}
+  export TF_VAR_ecs_root_password=${ECS_ROOT_PASSWORD}
+  
+  export APPLICATION_PATH=$(pwd)/$(ls target/*.jar)
+  export PROPERTIES_PATH=$(pwd)/src/main/resources/application.properties
+  export IMAGE_VERSION=${CI_PIPELINE_IID}
+  export ENVIRONMENT=${ENV_NAME}
+  export RDS_DATABASE=todolist
+  export RDS_ACCOUNT=todolist
+  export RDS_PASSWORD=${DB_ACCOUNT_PASSWORD}
+  
+  # Create/update the application database
+  cd infrastructure/10_webapp/05_rds
+  mkdir -p "$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/05_rds"
+  terraform init -input=false -backend-config="path=$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/05_rds/terraform.tfstate"
+  terraform apply -input=false -auto-approve
+  export RDS_CONNECTION_STRING=$(terraform output app_rds_connection_string)
+  
+  # Extract Alibaba Cloud information for building the application image
+  cd ../10_image
+  mkdir -p "$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/10_image"
+  terraform init -input=false -backend-config="path=$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/10_image/terraform.tfstate"
+  terraform apply -input=false -auto-approve
+  export SOURCE_IMAGE=$(terraform output image_id)
+  export INSTANCE_TYPE=$(terraform output instance_type)
+  
+  # Build the application image
+  packer build app_image.json
+  
+  # Create/update the ECS instances
+  cd ../15_ecs
+  mkdir -p "$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/15_ecs"
+  terraform init -input=false -backend-config="path=$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/15_ecs/terraform.tfstate"
+  terraform apply -input=false -auto-approve -parallelism=1
+  
+  cd ../../..
+  
+  echo "Application infrastructure successfully built (environment: ${ENV_NAME}, region: ${ALICLOUD_REGION})."
+  ```
+  Note: the `CI_PIPELINE_IID` variable [is set by GitLab](https://docs.gitlab.com/ee/ci/variables/), it contains the
+  pipeline number. We use it to create unique VM image names.
+
+Before we commit these scripts, we first need to add new variables in our GitLab project configuration:
+* Open GitLab (the URL must be like https://gitlab.my-sample-domain.xyz/);
+* Sign in if necessary;
+* Click on the "Projects" item in the top menu and select the "Your projects";
+* Click on the "todolist" project;
+* In the left menu select "Settings > CI/CD";
+* Expand the "Variables" panel, and create the following variables:
+  * ALICLOUD_ACCESS_KEY = your Alibaba Cloud access key ID (e.g. LTBIgF7wiMozeRIa)
+  * ALICLOUD_SECRET_KEY = your Alibaba Cloud access key secret (e.g. rdp59SYSKtNdDg3PYlTfjlrxu12fbp)
+  * ALICLOUD_REGION = your Alibaba Cloud region (e.g. ap-southeast-1)
+  * GITLAB_BUCKET_NAME = your OSS bucket name (e.g. gitlab-my-sample-domain-xyz)
+  * GITLAB_BUCKET_ENDPOINT = the OSS bucket endpoint (e.g. http://oss-ap-southeast-1-internal.aliyuncs.com); you can
+    get it from the [OSS console](https://oss.console.aliyun.com/), by selecting your bucket and by copying the
+    endpoint next to "VPC Network Access from ECS (Internal Network)"
+  * DOMAIN_NAME = your domain name (e.g. my-sample-domain.xyz)
+  * DB_ACCOUNT_PASSWORD = the password of the "todolist" user in the MySQL database (e.g. YourSecretPassw0rdForRds)
+  * ECS_ROOT_PASSWORD = the root password of your ECS instances (e.g. YourSecretPassw0rdForEcs)
+  * OSSFS_VERSION = [latest OSSFS version](https://github.com/aliyun/ossfs/releases) (e.g. 1.80.5)
+  * TERRAFORM_VERSION = [latest Terraform version](https://github.com/hashicorp/terraform/releases) (e.g. 0.11.10)
+  * PACKER_VERSION = [latest Packer version](https://github.com/hashicorp/packer/releases) (e.g. 1.3.2)
+* Click on "Save variables";
+
+Let's commit and push our changes. Open your terminal and type:
+```bash
+# Go to the project folder
+cd ~/projects/todolist
+
+# Check files to commit
+git status
+
+# Add the modified and new files
+git add .gitignore infrastructure/ gitlab-ci-scripts/
+
+# Commit and push to GitLab
+git commit -m "Add the deploy stage."
+git push origin master
+```
+
+In your GitLab web browser tab, select "CI / CD > Pipelines" in the left menu. You should get something like this:
+
+![Pipeline with deploy stage](images/gitlab-pipeline-with-deploy-stage.png)
+
+Check that your cloud resources have been successfully created by browsing the
+[VPC console](https://vpc.console.aliyun.com/) and by following links to related resources.
+
+Check your application by opening a new web browser tab and by navigating to your domain (like
+http://dev.my-sample-domain.xyz/).
+
+Congratulation if you managed to deploy your application automatically! From now on, any commit on the master branch
+automatically launches a pipeline that builds, tests, analyzes and deploys your change!
+
+## Pre-production and production environments
+As you can see in the scripts you have committed in the previous section, the two variables "ENV_NAME" and
+"SUB_DOMAIN_NAME" are set to different values according to the current branch name. Let's create new branches for
+the pre-production and production environments. Enter the following commands with your terminal:
+```bash
+# Go to the project folder
+cd ~/projects/todolist
+
+# Create a pre-production branch
+git checkout -b pre-production
+git push origin pre-production
+```
+Check your GitLab CI/CD pipeline ("CI / CD > Pipelines" left menu item): the process should work successfully.
+
+Check your cloud resources by browsing the [VPC console](https://vpc.console.aliyun.com/): this time they should have
+names containing "pre-prod" instead of "dev".
+
+You can also check your web application with the "pre-prod" sub-domain (e.g. http://pre-prod.my-sample-domain.xyz/).
+As you can see this new environment is completely isolated and independent from the development one.
+
+Let's do the same with the production environment:
+```bash
+# Create a production branch
+git checkout -b production
+git push origin production
+```
+Check your GitLab CI/CD pipeline, then your [cloud resources](https://vpc.console.aliyun.com/) and finally your web
+application with the "www" sub-domain: http://www.my-sample-domain.xyz/
+
+Congratulation: you have your 3 environments! From now on, the process to follow in order to deploy an new version of
+your application is the following:
+* Regularly commit improvements and new features into the master branch (via feature branches);
+* When the master branch is stable enough for a release, create a
+  [merge request](https://docs.gitlab.com/ee/gitlab-basics/add-merge-request.html) from the master branch into the
+  pre-production one:
+  
+  ![Merge request: master to pre-production](images/gitlab-merge-request-master-pre-prod.png)
+* Let another person to check and accept the merge request in order to start the deployment into pre-production.
+* Test the pre-production version, fix bugs and re-test. Note that it may be necessary to merge the master into
+  the pre-production branch several times until the bugs are fixed.
+* When the pre-production branch is ready, create a
+  [merge request](https://docs.gitlab.com/ee/gitlab-basics/add-merge-request.html) from the pre-production branch into
+  the production one:
+  
+  ![Merge request: pre-production to production](images/gitlab-merge-request-pre-prod-prod.png)
+* Let another person to check and accept the merge request in order to start the deployment into production.
