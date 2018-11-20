@@ -23,15 +23,15 @@ We will create 3 environments:
 * pre-prod.my-sample-domain.xyz - The "pre-production" environment for testing.
 * www.my-sample-domain.xyz - The "production" environment for all users.
 
-The two first sections are quite theoretical as they deal with cloud infrastructure design and development & deployment
-process.
+The two first sections are quite theoretical as they deal with cloud infrastructure design and development workflow.
 
-The section after that introduces [Terraform](https://www.terraform.io/): as you can see in the previous parts of this
-tutorial, creating our environment for GitLab and SonarQube with
+The next two sections introduces [Terraform](https://www.terraform.io/) and [Packer](https://packer.io/): as you can
+see in the previous parts of this tutorial, creating our environment for GitLab and SonarQube with
 the [web console](https://home-intl.console.aliyun.com/) is quite slow. Since we will have to create 3 nearly
-identical environments, we will use Terraform to speed-up the process.
+identical environments, we will use Terraform and Packer to speed-up the process.
 
-The final step is to improve our GitLab pipeline in order to make everything automatic.
+In the five last sections we will use Terraform, Packer and GitLab to create an highly-available architecture
+that will be automatically built and updated with a new pipeline stage.
 
 ## Highly available architecture
 The goal is to be able to serve our web application to users even in case of hardware or network failure.
