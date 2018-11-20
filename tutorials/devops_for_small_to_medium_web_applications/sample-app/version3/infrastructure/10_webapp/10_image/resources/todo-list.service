@@ -1,0 +1,17 @@
+[Unit]
+Description=todo-list
+After=syslog.target
+After=network.target[Service]
+
+[Service]
+ExecStart=/usr/bin/java -Xmx1800m -jar /opt/todo-list/todo-list.jar --spring.config.location=file:/etc/todo-list/application.properties
+SuccessExitStatus=143
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=todo-list
+
+[Install]
+WantedBy=multi-user.target

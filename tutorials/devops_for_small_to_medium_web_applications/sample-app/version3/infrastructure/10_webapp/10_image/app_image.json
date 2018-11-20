@@ -1,0 +1,80 @@
+{
+  "variables": {
+    "access_key": "{{env `ALICLOUD_ACCESS_KEY`}}",
+    "secret_key": "{{env `ALICLOUD_SECRET_KEY`}}",
+    "region_id": "{{env `ALICLOUD_REGION`}}",
+    "source_image": "{{env `SOURCE_IMAGE`}}",
+    "image_version": "{{env `IMAGE_VERSION`}}",
+    "instance_type": "{{env `INSTANCE_TYPE`}}",
+    "application_path": "{{env `APPLICATION_PATH`}}",
+    "properties_path": "{{env `PROPERTIES_PATH`}}",
+    "environment": "{{env `ENVIRONMENT`}}",
+    "rds_connection_string": "{{env `RDS_CONNECTION_STRING`}}",
+    "rds_database": "{{env `RDS_DATABASE`}}",
+    "rds_account": "{{env `RDS_ACCOUNT`}}",
+    "rds_password": "{{env `RDS_PASSWORD`}}"
+  },
+  "builders": [
+    {
+      "type": "alicloud-ecs",
+      "access_key": "{{user `access_key`}}",
+      "secret_key": "{{user `secret_key`}}",
+      "region": "{{user `region_id`}}",
+      "image_name": "sample-app-image-{{user `environment`}}-{{user `image_version`}}",
+      "image_description": "To-Do list web application ({{user `environment`}} environment).",
+      "image_version": "{{user `image_version`}}",
+      "source_image": "{{user `source_image`}}",
+      "ssh_username": "root",
+      "instance_type": "{{user `instance_type`}}",
+      "io_optimized": "true",
+      "internet_charge_type": "PayByTraffic",
+      "image_force_delete": "true"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "export DEBIAN_FRONTEND=noninteractive",
+        "apt-get -y update",
+        "apt-get -y upgrade",
+        "apt-get -y install default-jdk",
+        "mkdir -p /opt/todo-list",
+        "mkdir -p /etc/todo-list"
+      ],
+      "pause_before": "30s"
+    },
+    {
+      "type": "file",
+      "source": "{{user `application_path`}}",
+      "destination": "/opt/todo-list/todo-list.jar"
+    },
+    {
+      "type": "file",
+      "source": "{{user `properties_path`}}",
+      "destination": "/etc/todo-list/application.properties"
+    },
+    {
+      "type": "file",
+      "source": "resources/todo-list.service",
+      "destination": "/etc/systemd/system/todo-list.service"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "export RDS_CONNECTION_STRING=\"{{user `rds_connection_string`}}\"",
+        "export RDS_DATABASE=\"{{user `rds_database`}}\"",
+        "export RDS_ACCOUNT=\"{{user `rds_account`}}\"",
+        "export RDS_PASSWORD=\"{{user `rds_password`}}\"",
+        "export DATASOURCE_URL=\"jdbc:mysql://$RDS_CONNECTION_STRING:3306/$RDS_DATABASE?useSSL=false\"",
+        "export ESCAPED_DATASOURCE_URL=$(echo $DATASOURCE_URL | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_RDS_ACCOUNT=$(echo $RDS_ACCOUNT | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_RDS_PASSWORD=$(echo $RDS_PASSWORD | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "sed -i \"s/\\(spring\\.datasource\\.url=\\).*\\$/\\1${ESCAPED_DATASOURCE_URL}/\" /etc/todo-list/application.properties",
+        "sed -i \"s/\\(spring\\.datasource\\.username=\\).*\\$/\\1${ESCAPED_RDS_ACCOUNT}/\" /etc/todo-list/application.properties",
+        "sed -i \"s/\\(spring\\.datasource\\.password=\\).*\\$/\\1${ESCAPED_RDS_PASSWORD}/\" /etc/todo-list/application.properties",
+        "systemctl enable todo-list.service"
+      ]
+    }
+  ]
+}

@@ -507,7 +507,7 @@ following instructions:
 * Finish the instance creation by clicking on the "Create Instance" button;
 * Go back to the [ECS console](https://ecs.console.aliyun.com/), select the "Instances" item on the left menu and
   choose your region on top the screen; you should be able to see your new
-  instance "devops-simple-app-security-group-runner";
+  instance "devops-simple-app-gitlab-runner";
 * Click on the "Connect" link on the right of your ECS instance, copy the VNC Password (something like "667078") and
   enter it immediately after;
 * You should see a terminal in your web browser inviting you to login. Authenticate as root with the password you have
@@ -568,9 +568,9 @@ This tool needs several information in order to register the runner. Enter the f
 * Please enter the gitlab-ci token for this runner:
   copy the token from the GitLab page above (e.g. gXppo8ZyDgqdFb1vPG-w)
 * Please enter the gitlab-ci description for this runner:
-  devops-simple-app-security-group-runner
+  devops-simple-app-gitlab-runner
 * Please enter the gitlab-ci tags for this runner (comma separated):
-  keep it empty
+  (keep it empty)
 * Please enter the executor:
   docker
 * Please enter the default Docker image (e.g. ruby:2.1):
