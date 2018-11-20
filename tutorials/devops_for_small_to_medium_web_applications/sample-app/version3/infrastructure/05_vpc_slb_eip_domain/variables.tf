@@ -23,6 +23,6 @@ variable "domain_name" {
 }
 
 variable "sub_domain_name" {
-  description = "Domain name corresponding to the environment (dev, pre-prod, www)."
+  description = "Sub-domain name corresponding to the environment (dev, pre-prod, www)."
   default = "dev"
 }

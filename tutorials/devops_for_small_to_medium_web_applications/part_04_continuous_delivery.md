@@ -658,7 +658,7 @@ one environment:
 We will organize the scripts in 3 main groups:
 * The basis group that setups VPC, VSwitches, Security group, EIP, SLB instance and domain records.
 * The application group that setups RDS, VM image and ECS instances.
-* The [Let's Encrypt](https://letsencrypt.org/) group is responsible for obtaining and updating our
+* The [Let's Encrypt](https://letsencrypt.org/) group responsible for obtaining and updating our
   [SSL certificate](https://www.verisign.com/en_US/website-presence/website-optimization/ssl-certificates/index.xhtml).
 
 Note: we will deal with the third group in the next part of this tutorial.
@@ -704,7 +704,7 @@ variable "domain_name" {
 }
 
 variable "sub_domain_name" {
-  description = "Domain name corresponding to the environment (dev, pre-prod, www)."
+  description = "Sub-domain name corresponding to the environment (dev, pre-prod, www)."
   default = "dev"
 }
 ```
@@ -768,7 +768,7 @@ resource "alicloud_slb_listener" "app_slb_listener_http" {
 }
 ```
 Note 0: the [SLB architecture](https://www.alibabacloud.com/help/doc-detail/27544.htm) is composed of a master and a
-slave. The `vswitch_id` corresponds to the availability zone where the master is located, the salve is automatically
+slave. The `vswitch_id` corresponds to the availability zone where the master is located, the slave is automatically
 created in another zone. If the master fails, HTTP requests are transferred to the slave (within a delay of 30 sec).
 For more information about failover scenarios, please read the
 [official documentation](https://www.alibabacloud.com/help/doc-detail/27543.htm).
@@ -777,7 +777,7 @@ Note 1: as you can see the port redirection (80 to 8080) is defined in the SLB l
 uses our [Health check web service](#health-check-web-service) to determine whether a particular ECS instance is
 behaving normally or not.
 
-The last part of the "main.tf" file declares an EIP, attaches it to our SLB and register a DNS entry:
+The last part of the "main.tf" file declares an EIP, attaches it to our SLB and registers a DNS entry:
 ```hcl-terraform
 resource "alicloud_eip" "app_eip" { /* ... */ }
 
@@ -889,8 +889,8 @@ variable "db_account_password" {
   default = "P@ssw0rd"
 }
 ```
-Note: when creating the database, we fix the database name to "todolist" and the user name to "todolist" as well.
-We only let the user password configurable ("db_account_password" variable).
+Note: when creating the database, we set the database name to "todolist" and the user name to "todolist" as well.
+We only let the user password to be configurable ("db_account_password" variable).
 
 Open "10_webapp/05_rds/main.tf":
 ```hcl-terraform
@@ -928,7 +928,7 @@ resource "alicloud_db_account_privilege" "app_rds_db_account_privilege" {
   ]
 }
 ```
-Note: Like with the SLB, the RDS database uses a master/slave architecture. The `zone_id` is set via a datasource
+Note: Like with the SLB, the RDS database uses a master / slave architecture. The `zone_id` is set via a datasource
 (which provides a value like "ap-southeast-1MAZ1(a,b)"). The master is created in the availability zone of the 
 given `vswitch_id`.
 
@@ -949,7 +949,7 @@ terraform apply  \
 export RDS_CONNECTION_STRING=$(terraform output app_rds_connection_string)
 echo $RDS_CONNECTION_STRING
 ```
-The last command should print something like "rm-gs522kuv3u5m91256.mysql.singapore.rds.aliyuncs.com". This value come
+The last command should print something like "rm-gs522kuv3u5m91256.mysql.singapore.rds.aliyuncs.com". This value comes
 from the "output.tf" file:
 ```hcl-terraform
 output "app_rds_connection_string" {
@@ -1068,12 +1068,13 @@ The "app_image.json" file is a Packer script:
   ]
 }
 ```
-This script create a VM image by executing the following steps:
+This script creates a VM image by executing the following steps:
 * Create an ECS instance based on Ubuntu Linux;
+* Upgrade the existing packages;
 * Install Java JDK;
 * Copy our packaged application;
 * Copy our application configuration file (application.properties);
-* Copy a [Systemd](https://www.freedesktop.org/wiki/Software/systemd/) script (more on this later);
+* Copy a [Systemd](https://www.freedesktop.org/wiki/Software/systemd/) script (see the next paragraph for more info);
 * Set correct values in our application configuration file;
 * Enable our Systemd script in order to run our application automatically when the ECS instance starts.
 
@@ -1100,7 +1101,7 @@ WantedBy=multi-user.target
 This script instructs Systemd about how to start the application, how to restart it automatically if it crashes, and
 where to print the logs (via [syslog](https://en.wikipedia.org/wiki/Syslog)).
 
-Let's create our VM image, in your terminal run:
+Let's create our VM image; in your terminal run:
 ```bash
 # Go to the 10_webapp/10_image folder
 cd ../10_image
@@ -1109,7 +1110,7 @@ cd ../10_image
 terraform init
 
 # Request some information for the next step
-terraform apply  -var 'env=dev'
+terraform apply -var 'env=dev'
 export SOURCE_IMAGE=$(terraform output image_id)
 export INSTANCE_TYPE=$(terraform output instance_type)
 
@@ -1134,9 +1135,9 @@ You can check the newly created image via the web console:
 * Open the [ECS console](https://ecs.console.aliyun.com/);
 * Select "Images" in the left menu;
 * If necessary, select your region on the top of the page;
-* You should be able to see your new image named "sample-app-image-dev".
+* You should be able to see your new image named "sample-app-image-dev-1".
 
-Now comes the final step: creating ECS instances with our image and attach them to the SLB.
+Now comes the final step: to create ECS instances with our image and attach them to the SLB.
 Open the file "10_webapp/15_ecs/main.tf":
 ```hcl-terraform
 // ...
@@ -1192,9 +1193,9 @@ terraform apply  \
 ```
 Note: as you can see, the last command set the
 [parallelism](https://www.terraform.io/docs/commands/apply.html#parallelism-n) parameter to one. This is necessary
-because we configured our application to update the database schema during its initialisation (with Flyway); by
-creating one ECS instance at a time, we avoid potential data race issues (the first instance updates the schema, the
-next one simply checks that nothing needs to be done).
+because we configured our application to update the database schema during its initialization (with
+[Flyway](https://flywaydb.org/)). By creating one ECS instance at a time, we avoid potential data race issues (the
+first instance updates the schema, then the next one simply checks that nothing needs to be done).
 
 Let's check the deployment of our application:
 * Open the [SLB console](https://slb.console.aliyun.com/);
@@ -1224,6 +1225,12 @@ your HTTP request. Refresh the page several times and look what happen:
 ![Application on second zone](images/application-instance-id-zone-1.png)
 
 As you can see, your HTTP requests are distributed among your two ECS instances.
+
+Note: if you wish, you can enable [session persistence](https://www.alibabacloud.com/help/doc-detail/85949.htm) when
+configuring your SLB listener. That would allow each user to "stick" to the same ECS instance for all his HTTP requests,
+which is nice if you want to better exploit a local cache on your application server. However the disadvantage of this
+solution is that it might unbalance the load on your ECS instances. There are other solutions for caching, such as
+[Memcached](https://memcached.org/) or [Redis](https://redis.io/).
 
 After you have finished to study your environment, we need to delete it (it will be the responsibility of the CI/CD
 pipeline to re-create and update it). Open a terminal and run:
