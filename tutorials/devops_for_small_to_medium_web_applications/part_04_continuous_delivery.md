@@ -1707,7 +1707,7 @@ git push origin production
 Check your GitLab CI/CD pipeline, then your [cloud resources](https://vpc.console.aliyun.com/) and finally your web
 application with the "www" sub-domain: http://www.my-sample-domain.xyz/
 
-Congratulation: you have your 3 environments! From now on, the process to follow in order to deploy an new version of
+Congratulation: you have 3 environments! From now on, the process to follow in order to deploy an new version of
 your application is the following:
 * Regularly commit improvements and new features into the master branch (via feature branches);
 * When the master branch is stable enough for a release, create a
