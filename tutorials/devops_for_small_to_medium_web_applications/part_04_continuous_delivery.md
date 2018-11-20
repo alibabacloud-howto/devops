@@ -90,7 +90,7 @@ use [Terraform](https://www.terraform.io/): we write a script that describes our
 the [HCL language](https://www.terraform.io/docs/configuration/syntax.html)) and we ask Terraform to create / update our
 cloud environment accordingly.
 
-Let's test Terraform before using it for our project. Please
+Let's discover Terraform before using it for our project. Please
 [install it](https://www.terraform.io/intro/getting-started/install.html) on your computer (download the binary package
 and add it to your [PATH variable](https://en.wikipedia.org/wiki/PATH_(variable))), then open a terminal and run:
 ```bash
@@ -128,7 +128,7 @@ terraform apply
 ```
 Note: the values to set in `ALICLOUD_ACCESS_KEY` and `ALICLOUD_SECRET_KEY` are your access key ID and secret, you
 have already used them when you configured automatic backup for GitLab in the
-[part 1 of this tutorial](part_01_gitlab_installation_and_configuration.md)). About `ALICLOUD_REGION`, the available
+[part 1 of this tutorial](part_01_gitlab_installation_and_configuration.md)). For `ALICLOUD_REGION`, the available
 values can be found [in this page](https://www.alibabacloud.com/help/doc-detail/40654.htm).
 
 The last command should print something like this:
@@ -173,17 +173,17 @@ Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 Let's check the result:
 * Go to the [VPC console](https://vpc.console.aliyun.com/);
 * Select your region on top of the page;
-* Check the table of VPC, you should be able to see "sample-vpc":
+* Check the VPC table, you should be able to see "sample-vpc":
 
 ![VPC created with Terraform](images/terraform-sample-vpc.png)
 
-A very interesting feature of Terraform is that it is idempotent. We can check that with the following command:
+A very interesting feature of Terraform is its idempotence. We can check that with the following command:
 ```bash
 # Run Terraform again
 terraform apply
 ```
 Terraform interacts with the [Alibaba Cloud APIs](https://api.aliyun.com/) to check what are the existing resources,
-then compares them to our script and decides no modification need to be done. You can see it in the console:
+then compares them to our script and decides that no modification is needed. You can see it in the console logs:
 ```
 alicloud_vpc.sample_vpc: Refreshing state... (ID: vpc-t4nhi7y0wpzkfr2auxc0p)
 
@@ -223,7 +223,7 @@ resource "alicloud_vswitch" "sample_vswitch" {
   vpc_id = "${alicloud_vpc.sample_vpc.id}"
 }
 ```
-As you can see, we can use expressions like `${variable}` to refer the resources with each others. We can also use
+As you can see, we can use placeholders like `${a.variable}` to refer the resources with each others. We can also use
 a [data source](https://www.terraform.io/docs/configuration/data-sources.html) to query some information from
 Alibaba Cloud.
 
@@ -232,7 +232,7 @@ Save and quit with CTRL+X, and run the following command:
 # Update our cloud resources
 terraform apply
 ```
-This time Terraform sees that it doesn't need to re-create the VPC, but it can see it has to create the VSwitch:
+This time Terraform "understands" that it doesn't need to re-create the VPC, only the VSwitch:
 ```
 alicloud_vpc.sample_vpc: Refreshing state... (ID: vpc-t4nhi7y0wpzkfr2auxc0p)
 data.alicloud_zones.az: Refreshing state...
@@ -281,8 +281,10 @@ You should be able to see your sample VSwitch:
 
 ![VSwitch created with Terraform](images/terraform-sample-vswitch.png)
 
-Congratulation if you managed to get this far! Let's now release our cloud resources. With your terminal execute
-the following command:
+Congratulation if you managed to get this far! For more information about available resources and datasources, please
+read the [Alicloud provider documentation](https://www.terraform.io/docs/providers/alicloud/index.html).
+
+Let's release our cloud resources. With your terminal execute the following command:
 ```bash
 # Release our cloud resources
 terraform destroy
@@ -322,15 +324,16 @@ alicloud_vpc.sample_vpc: Destruction complete after 3s
 Destroy complete! Resources: 2 destroyed.
 ```
 
-As you can see the fact that Terraform checks existing cloud resources and then compares them to our scripts allows us
+As you can see, the fact that Terraform checks existing cloud resources and then compares them to our scripts allows us
 to create a new pipeline stage to run "terraform apply": at the first execution cloud resources will be created, at the
-next executions Terraform will not modify anything.
+next executions Terraform will update them if needed.
 
-We will commit the Terraform scripts with the application source code, like this modifications in the application code
-will always be in sync with the infrastructure code.
+We will commit the Terraform scripts in the same repository as the application source code. Like this, modifications
+in the application code will always be in sync with the infrastructure code.
 
 However this approach has one drawback: like scripts that modifies database schemas, we need to make sure we don't
-break things and keep compatibility in case we need to rollback our application to an old version.
+break things and stay [backward compatible](https://en.wikipedia.org/wiki/Backward_compatibility), in case we need to
+rollback our application to an old version.
 
 ## VM image generation with Packer
 [Packer](https://www.packer.io) is a tool made by the [same company](https://www.hashicorp.com/) as the one who
