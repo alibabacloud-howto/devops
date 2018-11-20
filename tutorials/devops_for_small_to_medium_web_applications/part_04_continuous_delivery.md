@@ -342,7 +342,7 @@ containing our already-configured application. The goal is to be able to create 
 everything is already configured (no need to login to the machine via SSH and install or execute applications). This
 solution is particularly handy for [auto scaling](https://www.alibabacloud.com/product/auto-scaling).
 
-Let's test Packer before using it for our project. Please
+Let's discover Packer before using it for our project. Please
 [install it](https://www.packer.io/intro/getting-started/install.html) on your computer (download the binary package
 and add it to your [PATH variable](https://en.wikipedia.org/wiki/PATH_(variable))), then open a terminal and run:
 ```bash
@@ -385,6 +385,7 @@ Copy the following content into your script:
     {
       "type": "shell",
       "inline": [
+        "export DEBIAN_FRONTEND=noninteractive",
         "apt-get -y update",
         "apt-get -y upgrade",
         "apt-get -y install nginx",
@@ -403,7 +404,7 @@ Save and quit with CTRL+X.
 Before we can run this script we need to know the exact source image and instance type available in your region. Open
 a new web browser tab and follow these instructions:
 * Go to [OpenAPI Explorer](https://api.aliyun.com/#product=Ecs&api=DescribeInstanceTypes);
-* If it is not already the case, select the "ECS" product on the left menu, and the "DescribeInstanceTypes"
+* If it is not already the case, select the "ECS" product on the left menu, then the "DescribeInstanceTypes"
   service on the left sub-menu;
 * Enter your [region ID](https://www.alibabacloud.com/help/doc-detail/40654.htm) in the "RegionId"
   field (e.g. ap-southeast-1);
@@ -1023,7 +1024,9 @@ The "app_image.json" file is a Packer script:
     {
       "type": "shell",
       "inline": [
+        "export DEBIAN_FRONTEND=noninteractive",
         "apt-get -y update",
+        "apt-get -y upgrade",
         "apt-get -y install default-jdk",
         "mkdir -p /opt/todo-list",
         "mkdir -p /etc/todo-list"

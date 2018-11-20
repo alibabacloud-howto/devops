@@ -35,7 +35,9 @@
     {
       "type": "shell",
       "inline": [
+        "export DEBIAN_FRONTEND=noninteractive",
         "apt-get -y update",
+        "apt-get -y upgrade",
         "apt-get -y install default-jdk",
         "mkdir -p /opt/todo-list",
         "mkdir -p /etc/todo-list"
