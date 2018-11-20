@@ -41,16 +41,16 @@ The following diagram shows a simplified view of our architecture:
 ![HA architecture](images/diagrams/ha-architecture.png)
 
 As you can see we are duplicating each cloud resource into two availability zones (zone A and zone B): since these zones
-are independents, a problem in one zone (e.g. machine/network failure) does not affect the other one.
+are independents, a problem in one zone (e.g. machine/network failure) can be compensated via the other one.
 
-Our application will run on two ECS instances. The traffic from internet is redirected thanks to a server load balancer
-installed in front of them.
+Our application will run on two ECS instances. The traffic from internet is redirected thanks to a
+[server load balancer](https://en.wikipedia.org/wiki/Load_balancing_(computing)) installed in front of them.
 
 For the data storage layer we use [ApsaraDB RDS for MySQL](https://www.alibabacloud.com/product/apsaradb-for-rds-mysql),
 a managed database service that handles server installation, maintenance, automatic backup, ...etc.
 
-Note: with this diagram you can understand why a stateless application is important: the only place where data can be
-shared is the database, so we don't need to establish a direct link between the applications. Moreover, if two users
+Note: with this diagram you can understand why a stateless application is advantageous: the only place where data is
+shared is the database, we don't need to establish a direct link between the application servers. Moreover, if two users
 are modifying the same data (e.g. by deleting the same item), the database will handle transactions for us, keep
 the data consistent and reject one user modification.
 
