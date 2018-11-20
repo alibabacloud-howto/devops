@@ -13,5 +13,3 @@ layout: default
 6. Part 6 - Maintenance and evolution
 7. Part 7 - UI testing
 8. Part 8 - Auto-scaling
-9. Part 9 - Rolling-release
-9. Annex 1 - Replacing GitLab CI by Jenkins
