@@ -1398,7 +1398,7 @@ feature branch only triggers the "build" and "quality" stages.
 
 In addition, because this stage is quite large, it has been split into multiple Bash scripts located in the
 folder "gitlab-ci-scripts/deploy":
-* "get_env_name_by_branch_name.sh" is quite simple: it gives the environment name ("dev", "pre-prod" and "prod") for the
+* *get_env_name_by_branch_name.sh* is quite simple: it gives the environment name ("dev", "pre-prod" and "prod") for the
   current branch ("master", "pre-production" and "production"):
   ```bash
   #!/usr/bin/env bash
@@ -1422,7 +1422,7 @@ folder "gitlab-ci-scripts/deploy":
       echo ${ENV_NAME_MASTER};
   fi
   ```
-* "get_sub_domain_name_by_branch_name.sh" is similar to "get_env_name_by_branch_name.sh", but it gives the sub-domain
+* *get_sub_domain_name_by_branch_name.sh* is similar to *get_env_name_by_branch_name.sh*, but it gives the sub-domain
   name instead ("dev", "pre-prod" and "www"):
   ```bash
   #!/usr/bin/env bash
@@ -1446,7 +1446,7 @@ folder "gitlab-ci-scripts/deploy":
       echo ${SUB_DOMAIN_NAME_MASTER};
   fi
   ```
-* "install_tools.sh" installs [OSSFS](https://github.com/aliyun/ossfs), [Terraform](https://www.terraform.io/) and
+* *install_tools.sh* installs [OSSFS](https://github.com/aliyun/ossfs), [Terraform](https://www.terraform.io/) and
   [Packer](https://www.packer.io/) on top of the [Ubuntu Docker image](https://hub.docker.com/_/ubuntu/):
   ```bash
   #!/usr/bin/env bash
@@ -1491,7 +1491,7 @@ folder "gitlab-ci-scripts/deploy":
   
   echo "Installation of OSSFS, Terraform and Packer completed."
   ```
-* "mount_ossfs.sh" makes our OSS bucket accessible like a normal folder:
+* *mount_ossfs.sh* makes our OSS bucket accessible like a normal folder:
   ```bash
   #!/usr/bin/env bash
   #
@@ -1517,7 +1517,7 @@ folder "gitlab-ci-scripts/deploy":
   
   echo "OSS bucket ${GITLAB_BUCKET_NAME} mounted with success into ${BUCKET_LOCAL_PATH}."
   ```
-* "build_basis_infra.sh" runs the Terraform scripts to build the basis infrastructure:
+* *build_basis_infra.sh* runs the Terraform scripts to build the basis infrastructure:
   ```bash
   #!/usr/bin/env bash
   #
@@ -1564,7 +1564,7 @@ folder "gitlab-ci-scripts/deploy":
   Note: you can see how we combine OSSFS with the
   [local backend](https://www.terraform.io/docs/backends/types/local.html) in order to save the tfstate files in our
   OSS bucket.
-* "build_webapp_infra.sh" runs the Terraform scripts to build the application infrastructure:
+* *build_webapp_infra.sh* runs the Terraform scripts to build the application infrastructure:
   ```bash
   #!/usr/bin/env bash
   #
@@ -1669,14 +1669,14 @@ In your GitLab web browser tab, select "CI / CD > Pipelines" in the left menu. Y
 
 ![Pipeline with deploy stage](images/gitlab-pipeline-with-deploy-stage.png)
 
-Check that your cloud resources have been successfully created by browsing the
+Check that your cloud resources have been successfully created by browsing to the
 [VPC console](https://vpc.console.aliyun.com/) and by following links to related resources.
 
 Check your application by opening a new web browser tab and by navigating to your domain (like
 http://dev.my-sample-domain.xyz/).
 
 Congratulation if you managed to deploy your application automatically! From now on, any commit on the master branch
-automatically launches a pipeline that builds, tests, analyzes and deploys your change!
+automatically launches a pipeline that builds, tests, analyzes and deploys the change!
 
 ## Pre-production and production environments
 As you can see in the scripts you have committed in the previous section, the two variables "ENV_NAME" and
