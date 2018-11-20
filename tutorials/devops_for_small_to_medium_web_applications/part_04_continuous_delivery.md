@@ -55,8 +55,8 @@ are modifying the same data (e.g. by deleting the same item), the database will 
 the data consistent and reject one user modification.
 
 ## GitLab flow
-Until now our development workflow was very simple: modify some source code, commit it into the master branch and push
-it to GitLab. This is fine at the beginning (single developer, no deployed version), but we need to enrich this process
+Until now our development workflow was simple: modify some source code, commit it into the master branch and push
+it to GitLab. This is fine at the beginning (single developer, no deployment), but we need to enrich this process
 in order to properly manage our releases. For that [GitLab Flow](https://docs.gitlab.com/ee/workflow/gitlab_flow.html)
 is a good solution: simple but rich enough for our needs.
 
@@ -77,9 +77,9 @@ modifications and accept / reject the request. If accepted, the feature branch i
 In this example, the developer on the "feature_b" merges the new commit from the master branch corresponding to the
 "feature_a" to his own branch. He later can emit a merge request to merge his branch to the master.
 
-On the right, the blocks correspond to environments (one environment = an EIP, a server load balancer, two ECS instances
-and a RDS instance). Everytime a commit is done in the master branch, the CI / CD pipeline compiles, tests, analyzes
-the code, updates the database schema and installs the new application version on the ECS instances. The process is the
+On the right, the blocks correspond to environments (one environment contains an EIP, a server load balancer, two
+ECS instances and a RDS instance). Everytime a commit is done in the master branch, the CI / CD pipeline compiles,
+tests, analyzes the code, and build / update cloud resources with our application. The process is the
 same with the pre-production and production branches: it allows us to manage releases by emitting a merge request
 from the master branch to the pre-production one and from the pre-production one to the production one.
 
