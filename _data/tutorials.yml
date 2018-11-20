@@ -29,6 +29,12 @@
     explains how to use Terraform and Packer to create cloud resources, and how to make the process automatic
     by extending our GitLab pipeline.
   concepts: Continuous delivery, high-availability, Terraform, Packer, infrastructure as code, GitLab flow
+- name: DevOps for small / medium web apps - Part 5 - HTTPS configuration
+  link: tutorials/devops_for_small_to_medium_web_applications/part_05_https_configuration.html
+  description: >-
+    This part is a direct extension to the part 4: it explains how to configure HTTPS with SSL certificates
+    from "Let's Encrypt".
+  concepts: HTTPS, SSL certificate, Let's Encrypt
 - name: Getting started with CI/CD and Kubernetes
   link: tutorials/getting_started_with_devops_with_kubernetes/README.html
   description: >-
