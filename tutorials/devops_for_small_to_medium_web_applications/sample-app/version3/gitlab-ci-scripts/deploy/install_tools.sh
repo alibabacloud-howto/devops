@@ -29,6 +29,8 @@ wget "https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VE
 unzip "packer_${PACKER_VERSION}_linux_amd64.zip" -d /usr/local/bin/
 
 # Display the version of installed tools
+echo "Installed OSSFS version:"
+ossfs --version
 echo "Installed Terraform version:"
 terraform version
 echo "Installed Packer version:"
