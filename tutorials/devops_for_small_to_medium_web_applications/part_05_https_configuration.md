@@ -7,8 +7,7 @@ layout: default
 0. [Introduction](#introduction)
 1. [Architecture](#architecture)
 2. [SLB configuration](#slb-configuration)
-3. Certificate manager instance
-4. Pipeline improvement
+3. [Certificate manager](#certificate-manager)
 
 ## Introduction
 [HTTPS](https://en.wikipedia.org/wiki/HTTPS) is now a requirement for any professional
@@ -84,7 +83,165 @@ it in the following process:
   to run certbot only when necessary.
 
 ## SLB configuration
+Let's start by adding a listener to our SLB in order to let it manage HTTPS connections. For that we will generate a
+temporary [self-signed certificate](https://en.wikipedia.org/wiki/Self-signed_certificate) and update our Terraform
+script. 
 
+Note: the complete project files with the modifications of this tutorial part are available in the
+"sample-app/version4" folder.
+
+Open "gitlab-ci-scripts/deploy/build_basis_infra.sh" and insert the following block before
+`# Set values for Terraform variables`:
+```bash
+# Generate SSL/TLS certificate if it doesn't exist
+export CERT_FOLDER_PATH=${BUCKET_LOCAL_PATH}/certificate/${ENV_NAME}/selfsigned
+export CERT_PUBLIC_KEY_PATH=${CERT_FOLDER_PATH}/public.crt
+export CERT_PRIVATE_KEY_PATH=${CERT_FOLDER_PATH}/private.key
+
+mkdir -p ${CERT_FOLDER_PATH}
+if [[ ! -f ${CERT_PUBLIC_KEY_PATH} ]]; then
+  openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout ${CERT_PRIVATE_KEY_PATH} \
+    -out ${CERT_PUBLIC_KEY_PATH} \
+    -subj "/C=CN/ST=Zhejiang/L=Hangzhou/O=Alibaba Cloud/OU=Project Delivery/CN=${SUB_DOMAIN_NAME}.${DOMAIN_NAME}"
+fi
+```
+As you can see, we use [OpenSSL](https://www.openssl.org/) to generate the certificate that we store on the OSS bucket.
+The certificate is composed of a public key "public.crt" and a private key "private.key". They are all in the
+[PEM format](https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail).
+
+We then create two new Terraform variables at the end of "infrastructure/05_vpc_slb_eip_domain/variables.tf":
+```hcl-terraform
+variable "certificate_public_key_path" {
+  description = "Path to the public key of the SSL/TLS certificate."
+}
+
+variable "certificate_private_key_path" {
+  description = "Path to the private key of the SSL/TLS certificate."
+}
+```
+
+Then we modify the script "gitlab-ci-scripts/deploy/build_basis_infra.sh" again by adding the following lines under
+`export TF_VAR_domain_name=${DOMAIN_NAME}`:
+```bash
+export TF_VAR_certificate_public_key_path=${CERT_PUBLIC_KEY_PATH}
+export TF_VAR_certificate_private_key_path=${CERT_PRIVATE_KEY_PATH}
+```
+
+Finally, we add the resources `alicloud_slb_server_certificate` and `alicloud_slb_listener` into
+"infrastructure/05_vpc_slb_eip_domain/main.tf":
+```hcl-terraform
+// ...
+// Server load balancer
+resource "alicloud_slb" "app_slb" {
+  // ...
+}
+
+// SLB server certificate
+resource "alicloud_slb_server_certificate" "app_slb_certificate" {
+  name = "sample-app-slb-certificate-self-${var.env}"
+  server_certificate = "${file(var.certificate_public_key_path)}"
+  private_key = "${file(var.certificate_private_key_path)}"
+}
+
+// SLB listeners
+resource "alicloud_slb_listener" "app_slb_listener_http" {
+  // ...
+}
+resource "alicloud_slb_listener" "app_slb_listener_https" {
+  load_balancer_id = "${alicloud_slb.app_slb.id}"
+
+  backend_port = 8080
+  frontend_port = 443
+  bandwidth = -1
+  protocol = "https"
+  ssl_certificate_id = "${alicloud_slb_server_certificate.app_slb_certificate.id}"
+  tls_cipher_policy = "tls_cipher_policy_1_0"
+
+  health_check = "on"
+  health_check_type = "http"
+  health_check_connect_port = 8080
+  health_check_uri = "/health"
+  health_check_http_code = "http_2xx"
+}
+
+// EIP
+// ...
+```
+Note 0: an SLB can manage two types of certificate resources: server certificates and CA certificates. We only deal with
+the first type (the second type can be used to authenticate users with
+[client certificates](https://en.wikipedia.org/wiki/Client_certificate)).
+
+Note 1: the HTTPS listener is very similar to the HTTP one, the main differences are the frontend port (443 instead
+of 80) and the presence of the `ssl_certificate_id`.
+
+Commit and push these changes to GitLab:
+```bash
+# Go to the project folder
+cd ~/projects/todolist
+
+# Check files to commit
+git status
+
+# Add the modified and new files
+git add gitlab-ci-scripts/deploy/build_basis_infra.sh
+git add infrastructure/05_vpc_slb_eip_domain/variables.tf
+git add infrastructure/05_vpc_slb_eip_domain/main.tf
+
+# Commit and push to GitLab
+git commit -m "Add a SLB HTTPS listener."
+git push origin master
+```
+
+Check your CI / CD pipeline on GitLab, in particularly the logs of the "deploy" stage and make sure there is no error.
+
+You can then test the results from your computer with the following command:
+```bash
+# Check that the SLB is configured to accept HTTPS requests
+curl https://dev.my-sample-domain.xyz/
+```
+The `curl` command should fail with the following error:
+```
+curl: (60) SSL certificate problem: self signed certificate
+More details here: https://curl.haxx.se/docs/sslcerts.html
+
+curl performs SSL certificate verification by default, using a "bundle"
+ of Certificate Authority (CA) public keys (CA certs). If the default
+ bundle file isn't adequate, you can specify an alternate file
+ using the --cacert option.
+If this HTTPS server uses a certificate signed by a CA represented in
+ the bundle, the certificate verification probably failed due to a
+ problem with the certificate (it might be expired, or the name might
+ not match the domain name in the URL).
+If you'd like to turn off curl's verification of the certificate, use
+ the -k (or --insecure) option.
+HTTPS-proxy has similar options --proxy-cacert and --proxy-insecure.
+```
+Which is normal because self-signed certificates are considered insecure (a hacker performing a man-in-the-middle
+attack can generate its own self-signed certificate), but it validates that our SLB listener is configured for HTTPS.
+
+Note: we can force curl to accept our self-signed certificate with the following command:
+```bash
+# Force curl to accept our self-signed certificate
+curl -k https://dev.my-sample-domain.xyz/
+```
+The `curl` command should output something like this:
+```
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>To-Do list</title>
+    <link rel="stylesheet" href="css/index.css" media="screen">
+</head>
+<body>
+<div id="react"></div>
+<script src="built/bundle.js"></script>
+</body>
+</html>
+```
+
+## Certificate manager
 
 TODO new variable 
   EMAIL_ADDRESS: "john.doe@example.org"
