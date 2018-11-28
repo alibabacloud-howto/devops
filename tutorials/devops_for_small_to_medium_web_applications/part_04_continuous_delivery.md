@@ -1083,7 +1083,7 @@ The systemd script is located in the "resources" folder:
 [Unit]
 Description=todo-list
 After=syslog.target
-After=network.target[Service]
+After=network.target
 
 [Service]
 ExecStart=/usr/bin/java -Xmx1800m -jar /opt/todo-list/todo-list.jar --spring.config.location=file:/etc/todo-list/application.properties
@@ -1480,6 +1480,8 @@ folder "gitlab-ci-scripts/deploy":
   unzip "packer_${PACKER_VERSION}_linux_amd64.zip" -d /usr/local/bin/
   
   # Display the version of installed tools
+  echo "Installed OSSFS version:"
+  ossfs --version
   echo "Installed Terraform version:"
   terraform version
   echo "Installed Packer version:"
