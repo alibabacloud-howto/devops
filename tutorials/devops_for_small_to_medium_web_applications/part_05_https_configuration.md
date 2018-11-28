@@ -6,8 +6,8 @@ layout: default
 ## Summary
 0. [Introduction](#introduction)
 1. [Architecture](#architecture)
-2. Certification server
-3. SLB configuration
+2. [SLB configuration](#slb-configuration)
+3. Certificate manager instance
 4. Pipeline improvement
 
 ## Introduction
@@ -82,6 +82,8 @@ it in the following process:
   
   Note: beware that Let's Encrypt has [rate limits](https://letsencrypt.org/docs/rate-limits/), so we should take care
   to run certbot only when necessary.
+
+## SLB configuration
 
 
 TODO new variable 
