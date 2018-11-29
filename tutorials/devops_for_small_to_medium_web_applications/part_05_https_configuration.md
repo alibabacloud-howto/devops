@@ -242,6 +242,601 @@ The `curl` command should output something like this:
 ```
 
 ## Certificate manager
+Let's setup our "Certificate Manager" so that we can get a proper certificate from Let's Encrypt.
+
+The first step is to create the VM image for the ECS instance that will manage our certificate. Open a terminal
+and execute the following instructions:
+```bash
+# Go to the project folder
+cd ~/projects/todolist
+
+# Create the folder that will contain the new scripts
+mkdir -p infrastructure/15_certman/05_image
+cd infrastructure/15_certman/05_image
+
+# Copy the Terraform scripts that allow us to extract info about our Alibaba Cloud region
+cp ../../10_webapp/10_image/variables.tf .
+cp ../../10_webapp/10_image/main.tf .
+cp ../../10_webapp/10_image/output.tf .
+
+# Create a resources folder for scripts we want to include into the image
+mkdir resources
+```
+
+The "Certificate Manager" needs the following configuration in order to obtain a certificate and update the SLB HTTPS
+listener configuration:
+* Nginx must be installed and configured to serve files from the "/var/www/html/certman/.well-known/" folder;
+* Nginx must also responds "OK" when the SLB health check system queries its "/health";
+* OSSFS must be installed and configured to allow the certificate to be stored on our OSS bucket (the goal is to
+  avoid hitting Let's Encrypt [rate limits](https://letsencrypt.org/docs/rate-limits/));
+* Certbot must be installed and called via a [Python](https://www.python.org/) script that will regularly check whether
+  the current certificate is up to date, renew it when necessary and update the SLB HTTPS listener configuration.
+
+The Packer script will become quite large so we will write it step by step. Let's start with Nginx installation and
+configuration. Enter the following command in your terminal:
+```bash
+# Create the packer script
+nano certman_image.json
+```
+Enter the following content into the new file:
+```json
+{
+  "variables": {
+    "access_key": "{{env `ALICLOUD_ACCESS_KEY`}}",
+    "secret_key": "{{env `ALICLOUD_SECRET_KEY`}}",
+    "region_id": "{{env `ALICLOUD_REGION`}}",
+    "source_image": "{{env `SOURCE_IMAGE`}}",
+    "image_version": "{{env `IMAGE_VERSION`}}",
+    "instance_type": "{{env `INSTANCE_TYPE`}}",
+    "environment": "{{env `ENVIRONMENT`}}"
+  },
+  "builders": [
+    {
+      "type": "alicloud-ecs",
+      "access_key": "{{user `access_key`}}",
+      "secret_key": "{{user `secret_key`}}",
+      "region": "{{user `region_id`}}",
+      "image_name": "sample-app-certman-image-{{user `environment`}}-{{user `image_version`}}",
+      "image_description": "Certificate manager ({{user `environment`}} environment).",
+      "image_version": "{{user `image_version`}}",
+      "source_image": "{{user `source_image`}}",
+      "ssh_username": "root",
+      "instance_type": "{{user `instance_type`}}",
+      "io_optimized": "true",
+      "internet_charge_type": "PayByTraffic",
+      "image_force_delete": "true"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "export DEBIAN_FRONTEND=noninteractive",
+        "apt-get -y update",
+        "apt-get -y upgrade",
+        "apt-get -y install nginx",
+        "mkdir -p /var/www/html/certman/.well-known",
+        "echo \"OK\" > /var/www/html/certman/health",
+        "echo \"It works!\" > /var/www/html/certman/.well-known/index.html"
+      ],
+      "pause_before": "30s"
+    },
+    {
+      "type": "file",
+      "source": "resources/nginx-conf-certman",
+      "destination": "/etc/nginx/sites-available/certman"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "ln -sf /etc/nginx/sites-available/certman /etc/nginx/sites-enabled/certman",
+        "nginx -t",
+        "systemctl enable nginx"
+      ]
+    }
+  ]
+}
+```
+This script executes the following actions:
+* Updates the default Ubuntu installation and install Nginx. It then creates the folders and files
+  that will be used to serve HTTP requests to "/health" and "/.well-known/";
+* Uploads an Nginx configuration file we haven't created yet (see below);
+* Activate the uploaded configuration and configure Systemd to automatically start Nginx when the machine starts.
+
+Save and quit by pressing CTRL+X, then create the Nginx configuration file:
+```bash
+# Create the Nginx configuration file
+nano infrastructure/15_certman/05_image/resources/nginx-conf-certman
+```
+Enter the following content into the new file:
+```
+server {
+        listen 8080 default_server;
+        listen [::]:8080 default_server;
+
+        root /var/www/html/certman;
+
+        index index.html index.htm index.nginx-debian.html;
+
+        server_name _;
+
+        location / {
+                try_files $uri $uri/ =404;
+        }
+}
+```
+The most interesting parts of this file are the listening port (8080, the same as our application in order to reuse our
+existing SLB configuration) and the root folder "/var/www/html/certman" (were we have already created the "health" file
+and ".well-known" folder).
+
+Save and quit by pressing CTRL+X. Let's extend our Packer script:
+```bash
+# Edit the packer script
+nano certman_image.json
+```
+Edit the content with the following changes:
+```json
+{
+  "variables": {
+    // ...
+    "ossfs_version": "{{env `OSSFS_VERSION`}}",
+    "bucket_name": "{{env `BUCKET_NAME`}}",
+    "bucket_endpoint": "{{env `BUCKET_ENDPOINT`}}"
+  },
+  // ...
+  "provisioners": [
+    // ...
+    {
+      "type": "file",
+      "source": "resources/ossfs.service",
+      "destination": "/etc/systemd/system/ossfs.service"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "export OSSFS_VERSION=\"{{user `ossfs_version`}}\"",
+        "export ALICLOUD_ACCESS_KEY=\"{{user `access_key`}}\"",
+        "export ALICLOUD_SECRET_KEY=\"{{user `secret_key`}}\"",
+        "export BUCKET_NAME=\"{{user `bucket_name`}}\"",
+        "export BUCKET_ENDPOINT=\"{{user `bucket_endpoint`}}\"",
+        "export DEBIAN_FRONTEND=noninteractive",
+        "apt-get -y install gdebi-core wget",
+        "cd /tmp",
+        "wget \"https://github.com/aliyun/ossfs/releases/download/v${OSSFS_VERSION}/ossfs_${OSSFS_VERSION}_ubuntu16.04_amd64.deb\"",
+        "gdebi -n \"ossfs_${OSSFS_VERSION}_ubuntu16.04_amd64.deb\"",
+        "echo \"$BUCKET_NAME:$ALICLOUD_ACCESS_KEY:$ALICLOUD_SECRET_KEY\" > /etc/passwd-ossfs",
+        "chmod 640 /etc/passwd-ossfs",
+        "mkdir -p /mnt/oss_bucket",
+        "export ESCAPED_BUCKET_NAME=$(echo $BUCKET_NAME | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_BUCKET_ENDPOINT=$(echo $BUCKET_ENDPOINT | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "sed -i \"s/%BUCKET_NAME%/${ESCAPED_BUCKET_NAME}/\" /etc/systemd/system/ossfs.service",
+        "sed -i \"s/%BUCKET_ENDPOINT%/${ESCAPED_BUCKET_ENDPOINT}/\" /etc/systemd/system/ossfs.service",
+        "systemctl enable ossfs.service"
+      ]
+    }
+  ]
+}
+```
+This addition add two provisioners that:
+* Upload a Systemd file we haven't created yet (see below);
+* Install OSSFS, configure it and configure Systemd to start OSSFS when the machine boots.
+
+Save and close by pressing CTRL+X, then create the Systemd file:
+```bash
+# Create the Systemd configuration filenano 
+nano resources/ossfs.service
+```
+Copy the following content to this new file:
+```
+[Unit]
+Description=ossfs
+After=syslog.target
+After=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/ossfs %BUCKET_NAME% /mnt/oss_bucket -ourl=%BUCKET_ENDPOINT%
+ExecStop=/bin/umount /mnt/oss_bucket
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=ossfs
+
+[Install]
+WantedBy=multi-user.target
+```
+The most important part of this file is the `ExecStart` property: it mounts our OSS bucket in "/mnt/oss_bucket" (note:
+the `%BUCKET_NAME%` and `%BUCKET_ENDPOINT%` placeholders are replaced by using
+[sed](https://www.gnu.org/software/sed/manual/sed.html) in the Packer script).
+
+Save and close the file with CTRL+X. Let's continue with the certbot installation and our certificate update script:
+```bash
+# Edit the packer script
+nano certman_image.json
+```
+Edit the content with the following changes:
+```json
+{
+  "variables": {
+    // ...
+    "domain": "{{env `DOMAIN_NAME`}}",
+    "sub_domain": "{{env `SUB_DOMAIN_NAME`}}",
+    "email_address": "{{env `EMAIL_ADDRESS`}}"
+  },
+  // ...
+  "provisioners": [
+    // ...
+    {
+      "type": "shell",
+      "inline": [
+        "mkdir -p /etc/certificate-updater/"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "resources/certificate-updater-config.ini",
+      "destination": "/etc/certificate-updater/config.ini"
+    },
+    {
+      "type": "file",
+      "source": "resources/certificate-updater.py",
+      "destination": "/opt/certificate-updater.py"
+    },
+    {
+      "type": "file",
+      "source": "resources/certificate-updater.service",
+      "destination": "/etc/systemd/system/certificate-updater.service"
+    },
+    {
+      "type": "file",
+      "source": "resources/certificate-updater-cron",
+      "destination": "/etc/cron.d/certificate-updater"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "export DEBIAN_FRONTEND=noninteractive",
+        "export ALICLOUD_ACCESS_KEY=\"{{user `access_key`}}\"",
+        "export ALICLOUD_SECRET_KEY=\"{{user `secret_key`}}\"",
+        "export ALICLOUD_REGION=\"{{user `region_id`}}\"",
+        "export ENVIRONMENT=\"{{user `environment`}}\"",
+        "export DOMAIN=\"{{user `domain`}}\"",
+        "export SUB_DOMAIN=\"{{user `sub_domain`}}\"",
+        "export EMAIL_ADDRESS=\"{{user `email_address`}}\"",
+        "apt-get -y install software-properties-common",
+        "add-apt-repository -y ppa:certbot/certbot",
+        "apt-get -y update",
+        "apt-get -y install python-certbot-nginx",
+        "pip install aliyun-python-sdk-core --upgrade",
+        "pip install aliyun-python-sdk-slb --upgrade",
+        "pip install pyopenssl --upgrade",
+        "pip install pytz --upgrade",
+        "export ESCAPED_ACCESS_KEY=$(echo $ALICLOUD_ACCESS_KEY | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_SECRET_KEY=$(echo $ALICLOUD_SECRET_KEY | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_REGION=$(echo $ALICLOUD_REGION | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_ENVIRONMENT=$(echo $ENVIRONMENT | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_DOMAIN=$(echo $DOMAIN | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_SUB_DOMAIN=$(echo $SUB_DOMAIN | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_EMAIL_ADDRESS=$(echo $EMAIL_ADDRESS | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "sed -i \"s/%access-key-id%/${ESCAPED_ACCESS_KEY}/\" /etc/certificate-updater/config.ini",
+        "sed -i \"s/%access-key-secret%/${ESCAPED_SECRET_KEY}/\" /etc/certificate-updater/config.ini",
+        "sed -i \"s/%region-id%/${ESCAPED_REGION}/\" /etc/certificate-updater/config.ini",
+        "sed -i \"s/%environment%/${ESCAPED_ENVIRONMENT}/\" /etc/certificate-updater/config.ini",
+        "sed -i \"s/%domain%/${ESCAPED_DOMAIN}/\" /etc/certificate-updater/config.ini",
+        "sed -i \"s/%sub-domain%/${ESCAPED_SUB_DOMAIN}/\" /etc/certificate-updater/config.ini",
+        "sed -i \"s/%email-address%/${ESCAPED_EMAIL_ADDRESS}/\" /etc/certificate-updater/config.ini",
+        "systemctl enable certificate-updater.service"
+      ]
+    }
+  ]
+}
+```
+As you can see we are adding a new variable "email_address" that we will need to add in the GitLab configuration, it
+must contain an email address where we want to receive messages from Let's Encrypt when our certificate is going to
+expire.
+
+We are also uploading many new files:
+* certificate-updater.py - a script written in Python that check whether the current certificate it up to date,
+  renew it if necessary, and change the SLB configuration;
+* certificate-updater-config.ini - the configuration file for "certificate-updater.py";
+* certificate-updater.service - a SystemD script in order to execute "certificate-updater.py" when the VM starts;
+* certificate-updater-cron - a [Cron](https://en.wikipedia.org/wiki/Cron) script in order to run
+  "certificate-updater.py" periodically.
+
+The last provisioner installs certbot and libraries for our Python script, updates the Python script configuration,
+and configures Systemd to start OSSFS when the machine boots.
+
+Save with CTRL+X, then create the Python script configuration file:
+```bash
+# Create the configuration file for the Python script
+nano resources/certificate-updater-config.ini
+```
+Put the following content into this file:
+```
+#
+# Configuration file file for certificate-updater.
+#
+# This file must be located at /etc/certificate-updater/config.ini
+#
+
+[AlibabaCloud]
+AccessKeyId : %access-key-id%
+AccessKeySecret : %access-key-secret%
+RegionId : %region-id%
+
+[Environment]
+# Environment (dev, pre-prod, prod)
+Environment : %environment%
+
+# Main domain name
+Domain : %domain%
+
+# Sub-domain name (dev, pre-prod, www)
+SubDomain : %sub-domain%
+
+# Email address of the person to warn when the certificate will expire soon
+EmailAddress : %email-address%
+```
+The content is straight forward; the placeholders are replaced with `sed` in the Packer script.
+Save with CTRL+X and create the Python script:
+```bash
+# Create the Python script
+nano resources/certificate-updater.py
+```
+Enter the following content into the file:
+```python
+#!/usr/bin/env python
+# coding=utf-8
+
+import ConfigParser
+import OpenSSL
+import glob
+import json
+import os
+import pytz
+import shutil
+import subprocess
+from aliyunsdkcore.client import AcsClient
+from aliyunsdkcore.request import CommonRequest
+from datetime import datetime
+from datetime import timedelta
+
+# Read the configuration
+config = ConfigParser.ConfigParser()
+config.read("/etc/certificate-updater/config.ini")
+
+accessKeyId = config.get("AlibabaCloud", "AccessKeyId")
+accessKeySecret = config.get("AlibabaCloud", "AccessKeySecret")
+regionId = config.get("AlibabaCloud", "RegionId")
+environment = config.get("Environment", "Environment")
+domain = config.get("Environment", "Domain")
+subDomain = config.get("Environment", "SubDomain")
+emailAddress = config.get("Environment", "EmailAddress")
+
+print("Certificate Updater started (environment: " + environment + ", " +
+      "domain: " + domain + ", sub-domain: " + subDomain + ", email address: " + emailAddress + ")")
+
+# Check if we need to run certbot
+certFolderPath = "/mnt/oss_bucket/certificate/" + environment + "/letsencrypt"
+publicKeyPath = certFolderPath + "/cert.pem"
+privateKeyPath = certFolderPath + "/privkey.pem"
+certbotCertFolderPath = "/etc/letsencrypt/live/" + subDomain + "." + domain
+
+publicKeyExists = os.path.exists(publicKeyPath)
+privateKeyExists = os.path.exists(privateKeyPath)
+certExpireSoon = False
+
+if publicKeyExists:
+    publicKey = open(publicKeyPath, "rt").read()
+    x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, publicKey)
+    expirationDate = datetime.strptime(x509.get_notAfter(), "%Y%m%d%H%M%SZ").replace(tzinfo=pytz.UTC)
+    now = datetime.now(pytz.utc)
+    certExpireSoon = now + timedelta(weeks=1) > expirationDate
+
+runCertBot = not publicKeyExists or not privateKeyExists or certExpireSoon
+
+certbotCronConfigured = not os.path.exists("/etc/cron.d/certbot")
+print("Let's Encrypt certificate status:")
+print("    publicKeyPath           = %s" % publicKeyPath)
+print("    privateKeyPath          = %s" % privateKeyPath)
+print("    publicKeyExists         = %s" % publicKeyExists)
+print("    privateKeyExists        = %s" % privateKeyExists)
+print("    certExpireSoon          = %s" % certExpireSoon)
+print("    certbotCronConfigured   = %s" % certbotCronConfigured)
+print("    runCertBot              = %s" % runCertBot)
+
+# Run certbot if necessary
+if runCertBot:
+    print("Executing certbot...")
+    returnCode = subprocess.call(
+        "certbot certonly --webroot -w /var/www/html/certman/.well-known/ -d \"%s.%s\" --non-interactive "
+        "--agree-tos --email \"%s\"" % (subDomain, domain, emailAddress), shell=True)
+    if returnCode != 0:
+        print("Unable to run certbot, quitting...")
+        quit(1)
+
+    print("Replace the certificate on the OSS bucket...")
+    if not os.path.exists(certFolderPath):
+        os.makedirs(certFolderPath)
+    for f in glob.glob(certFolderPath + "/*"):
+        os.remove(f)
+    for f in glob.glob(certbotCertFolderPath + "/*"):
+        shutil.copy2(f, certFolderPath + "/")
+
+# Check if the SLB certificate needs to be updated
+print("Getting information about the SLB sample-app-slb-" + environment + "...")
+client = AcsClient(accessKeyId, accessKeySecret, regionId)
+request = CommonRequest()
+request.set_accept_format("json")
+request.set_domain("slb.aliyuncs.com")
+request.set_method("POST")
+request.set_version("2014-05-15")
+request.set_action_name("DescribeLoadBalancers")
+request.add_query_param("LoadBalancerName", "sample-app-slb-" + environment)
+request.add_query_param("RegionId", regionId)
+jsonResponse = client.do_action_with_exception(request)
+response = json.loads(jsonResponse)
+if response["TotalCount"] != 1:
+    print("Unable to find the SLB. Response:")
+    print(response)
+    quit(1)
+slbInfo = response["LoadBalancers"]["LoadBalancer"][0]
+slbId = slbInfo["LoadBalancerId"]
+
+print("SLB found: %s. Loading HTTPS listener information..." % slbId)
+request = CommonRequest()
+request.set_accept_format("json")
+request.set_domain("slb.aliyuncs.com")
+request.set_method("POST")
+request.set_version("2014-05-15")
+request.set_action_name("DescribeLoadBalancerHTTPSListenerAttribute")
+request.add_query_param("ListenerPort", "443")
+request.add_query_param("LoadBalancerId", slbId)
+jsonResponse = client.do_action_with_exception(request)
+response = json.loads(jsonResponse)
+if "ServerCertificateId" not in response:
+    print("Unable to find the SLB HTTPS certificate. Response:")
+    print(response)
+    quit(1)
+slbCertId = response["ServerCertificateId"]
+
+print("SLB HTTPS listener information found. Loading information about the certificate " + slbCertId + "...")
+request = CommonRequest()
+request.set_accept_format("json")
+request.set_domain("slb.aliyuncs.com")
+request.set_method("POST")
+request.set_version("2014-05-15")
+request.set_action_name("DescribeServerCertificates")
+request.add_query_param("RegionId", regionId)
+request.add_query_param("ServerCertificateId", slbCertId)
+jsonResponse = client.do_action_with_exception(request)
+response = json.loads(jsonResponse)
+if not response["ServerCertificates"]["ServerCertificate"]:
+    print("Unable to find the certificate " + slbCertId + ". Response:")
+    print(response)
+    quit(1)
+slbCertInfo = response["ServerCertificates"]["ServerCertificate"][0]
+slbCertFingerprint = slbCertInfo["Fingerprint"].upper()
+
+# Compute the fingerprint of the current certificate from Let's Encrypt
+print("Computing the Let's Encrypt certificate fingerprint...")
+publicKey = open(publicKeyPath, "rt").read()
+x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, publicKey)
+certFingerprint = x509.digest("sha1")
+
+# Check if the SLB listener certificate needs to be updated
+updateListenerCert = slbCertFingerprint != certFingerprint
+print("Certificates information:")
+print("    slbCertFingerprint = %s" % slbCertFingerprint)
+print("    certFingerprint    = %s" % certFingerprint)
+print("    updateListenerCert = %s" % updateListenerCert)
+
+if not updateListenerCert:
+    print("SLB listener certificate is up to date.")
+    quit(0)
+
+# Upload the SLB listener certificate
+now = datetime.now()
+certName = "sample-app-slb-certificate-" + environment + "-" + now.strftime("%Y%m%d%H%M%S")
+print("Upload the Let's Encrypt certificate " + certName + "...")
+request = CommonRequest()
+request.set_accept_format("json")
+request.set_domain("slb.aliyuncs.com")
+request.set_method("POST")
+request.set_version("2014-05-15")
+request.set_action_name("UploadServerCertificate")
+privateKey = open(privateKeyPath, "rt").read()
+privateKey = privateKey.replace("BEGIN PRIVATE", "BEGIN RSA PRIVATE")
+privateKey = privateKey.replace("END PRIVATE", "END RSA PRIVATE")
+request.add_query_param("ServerCertificate", publicKey)
+request.add_query_param("PrivateKey", privateKey)
+request.add_query_param("ServerCertificateName", certName)
+jsonResponse = client.do_action_with_exception(request)
+response = json.loads(jsonResponse)
+if not response["ServerCertificateId"]:
+    print("Unable to upload the certificate " + certName + ". Response:")
+    print(response)
+    quit(1)
+certId = response["ServerCertificateId"]
+
+# Update the HTTPS listener with the new certificate
+print("Certificate " + certName + " (id: " + certId + ") uploaded with success. Updating the HTTP listener...")
+request = CommonRequest()
+request.set_accept_format("json")
+request.set_domain("slb.aliyuncs.com")
+request.set_method("POST")
+request.set_version("2014-05-15")
+request.set_action_name("SetLoadBalancerHTTPSListenerAttribute")
+request.add_query_param("ListenerPort", "443")
+request.add_query_param("LoadBalancerId", slbId)
+request.add_query_param("ServerCertificateId", certId)
+jsonResponse = client.do_action_with_exception(request)
+response = json.loads(jsonResponse)
+if "Code" in response:
+    print("Unable to update the SLB HTTPS certificate. Response:")
+    print(response)
+    quit(1)
+print("SLB listener certificate updated with success.")
+```
+This script is quite long unfortunately, but it is easy to read. It executes the following operations:
+* Read the configuration file;
+* Check if a certificate already exists, and if yes check its expiration date;
+* Run certbot if the certificate doesn't exist or if it will be expired soon. The new certificate is stored into the
+  OSS bucket;
+* Get information about our SLB configuration thanks to [Alibaba Cloud OpenAPI](https://api.aliyun.com/);
+* Compare the SLB certificate fingerprint with the one we got with certbot, and stop the script here if they are equal;
+* Upload the new certificate and update the SLB HTTPS listener configuration.
+
+Save this file with CTRL+X and create the SystemD configuration file:
+```bash
+# Create the SystemD configuration file
+nano resources/certificate-updater.service
+```
+Enter the following text into this file:
+```
+[Unit]
+Description=certificate-updater
+After=syslog.target
+After=network.target
+After=ossfs.service
+
+[Service]
+Type=simple
+RemainAfterExit=yes
+ExecStart=/usr/bin/python2.7 /opt/certificate-updater.py
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=certificate-updater
+
+[Install]
+WantedBy=multi-user.target
+```
+As you can see, this service will starts after we have mounted our OSS bucket. The `ExecStart` property run our script
+with Python 2.7.
+
+Save this file with CTRL+X and create the Cron configuration file:
+```bash
+# Create the Cron configuration file
+nano resources/certificate-updater-cron
+```
+Fill the file with the following content:
+```
+#
+# Execute the certificate updater.
+#
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+15 */12 * * * root /usr/bin/python2.7 /opt/certificate-updater.py 2>&1 | /usr/bin/logger -t certificate-updater
+```
+This file configures Cron to run our Python script every day and 12h15 AM / PM. The console output is sent to syslog
+with the [logger command](http://man7.org/linux/man-pages/man1/logger.1.html).
+
+Save this file with CTRL+X.
+
+
 
 TODO new variable 
   EMAIL_ADDRESS: "john.doe@example.org"
+
+TODO talk about certificate auto renew
