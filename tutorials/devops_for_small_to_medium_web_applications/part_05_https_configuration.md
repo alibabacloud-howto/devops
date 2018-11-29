@@ -9,6 +9,10 @@ layout: default
 2. [SLB configuration](#slb-configuration)
 3. [Certificate manager](#certificate-manager)
 
+   1. [VM image](#vm-image)
+   2. [Cloud resources](#cloud-resources)
+   3. [GitLab pipeline](#gitlab-pipeline)
+
 ## Introduction
 [HTTPS](https://en.wikipedia.org/wiki/HTTPS) is now a requirement for any professional
 website that needs to receive input from users, as it prevents
@@ -242,6 +246,8 @@ The `curl` command should output something like this:
 ```
 
 ## Certificate manager
+
+### VM image
 Let's setup our "Certificate Manager" so that we can get a proper certificate from Let's Encrypt.
 
 The first step is to create the VM image for the ECS instance that will manage our certificate. Open a terminal
@@ -819,7 +825,7 @@ Save this file with CTRL+X and create the Cron configuration file:
 # Create the Cron configuration file
 nano resources/certificate-updater-cron
 ```
-Fill the file with the following content:
+Write the following content:
 ```
 #
 # Execute the certificate updater.
@@ -834,9 +840,129 @@ with the [logger command](http://man7.org/linux/man-pages/man1/logger.1.html).
 
 Save this file with CTRL+X.
 
+### Cloud resources
+Now that we can generate an image, let's create the ECS instance and other related cloud resources.
+
+Open your terminal and execute:
+```bash
+# Go to the project folder
+cd ~/projects/todolist
+
+# Create the folder that will contain the new scripts
+mkdir -p infrastructure/15_certman/10_ecs_slb_rule
+cd infrastructure/15_certman/10_ecs_slb_rule
+
+# Declare the variables for Terraform
+nano variables.tf
+```
+Put the following content into this new file:
+```hcl-terraform
+variable "env" {
+  description = "Environment (dev, pre-prod, prod)"
+  default = "dev"
+}
+
+variable "ecs_root_password" {
+  description = "ECS root password (simpler to configure than key pairs)"
+  default = "YourR00tP@ssword"
+}
+```
+Save and close with CTRL+X, then continue with the main script:
+```bash
+# Create the main Terraform script
+nano main.tf
+```
+The main script must contain the following code:
+```hcl-terraform
+// Alibaba Cloud provider (source: https://github.com/terraform-providers/terraform-provider-alicloud)
+provider "alicloud" {}
+
+// Our custom certificate manager image
+data "alicloud_images" "certman_images" {
+  owners = "self"
+  name_regex = "sample-app-certman-image-${var.env}"
+  most_recent = true
+}
+
+// VSwitches in the first zone
+data "alicloud_vswitches" "app_vswitches_zone_0" {
+  name_regex = "sample-app-vswitch-zone-0-${var.env}"
+}
+
+// Security group
+data "alicloud_security_groups" "app_security_groups" {
+  name_regex = "sample-app-security-group-${var.env}"
+}
+
+// Load balancer
+data "alicloud_slbs" "app_slbs" {
+  name_regex = "sample-app-slb-${var.env}"
+}
+
+// Instance type with 1 vCPU, 0.5 GB or RAM
+data "alicloud_instance_types" "instance_types_zone_0" {
+  cpu_core_count = 1
+  memory_size = 0.5
+  availability_zone = "${data.alicloud_vswitches.app_vswitches_zone_0.vswitches.0.zone_id}"
+  network_type = "Vpc"
+}
+
+// One ECS instance in the first availability zone
+resource "alicloud_instance" "certman_ecs" {
+  instance_name = "sample-app-certman-ecs-${var.env}"
+  description = "Certificate manager (${var.env} environment)."
+
+  host_name = "sample-app-certman-ecs-${var.env}"
+  password = "${var.ecs_root_password}"
+
+  image_id = "${data.alicloud_images.certman_images.images.0.id}"
+  instance_type = "${data.alicloud_instance_types.instance_types_zone_0.instance_types.0.id}"
+
+  internet_max_bandwidth_out = 1
+
+  vswitch_id = "${data.alicloud_vswitches.app_vswitches_zone_0.vswitches.0.id}"
+  security_groups = [
+    "${data.alicloud_security_groups.app_security_groups.groups.0.id}"
+  ]
+}
+
+// SLB VServer group
+resource "alicloud_slb_server_group" "certman_server_group" {
+  name = "sample-app-certman-slb-server-group-${var.env}"
+  load_balancer_id = "${data.alicloud_slbs.app_slbs.slbs.0.id}"
+  servers = [
+    {
+      server_ids = [
+        "${alicloud_instance.certman_ecs.id}"
+      ]
+      port = 8080
+      weight = 100
+    }
+  ]
+}
+
+// SLB forwarding rule
+resource "alicloud_slb_rule" "rule" {
+  name = "sample-app-certman-slb-rule-${var.env}"
+  load_balancer_id = "${data.alicloud_slbs.app_slbs.slbs.0.id}"
+  frontend_port = 80
+  url = "/.well-known"
+  server_group_id = "${alicloud_slb_server_group.certman_server_group.id}"
+}
+```
+As you can see, this script creates an `alicloud_instance` resource based on our VM image. This ECS instance has a
+public IP address (`internet_max_bandwidth_out = 1`); without it, the instance would not be able to connect to internet,
+which is necessary for certbot.
+
+Our SLB configuration is extended with a [forwarding rule](https://www.alibabacloud.com/help/doc-detail/48411.htm)
+(`alicloud_slb_rule` resource) that redirects HTTP requests with URLs that starts with "/.well-known" to our new
+ECS instance. This redirection is made possible via a
+[VServer group](https://www.alibabacloud.com/help/doc-detail/52795.htm) (`alicloud_slb_server_group` resource).
+
+Save and close this file with CTRL+X.
+
+### GitLab pipeline
 
 
 TODO new variable 
   EMAIL_ADDRESS: "john.doe@example.org"
-
-TODO talk about certificate auto renew
