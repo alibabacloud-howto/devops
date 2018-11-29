@@ -12,6 +12,7 @@ layout: default
    1. [VM image](#vm-image)
    2. [Cloud resources](#cloud-resources)
    3. [GitLab pipeline](#gitlab-pipeline)
+   4. [Verification](#verification)
 
 ## Introduction
 [HTTPS](https://en.wikipedia.org/wiki/HTTPS) is now a requirement for any professional
@@ -962,7 +963,135 @@ ECS instance. This redirection is made possible via a
 Save and close this file with CTRL+X.
 
 ### GitLab pipeline
+Let's integrate our new scripts to our GitLab pipeline. Let's create a Bash script that will call Packer and Terraform:
+```bash
+# Go to the project folder
+cd ~/projects/todolist
 
+# Create a new pipeline script for the Certificate Manager
+nano gitlab-ci-scripts/deploy/build_certman_infra.sh
+```
+Copy the following content into this new file:
+```bash
+#!/usr/bin/env bash
+#
+# Build the certificate manager infrastructure (RDS, VM image, ECS, ...)
+#
+# Required global variables:
+#   - ALICLOUD_ACCESS_KEY
+#   - ALICLOUD_SECRET_KEY
+#   - ALICLOUD_REGION
+#   - ENV_NAME
+#   - DOMAIN_NAME
+#   - SUB_DOMAIN_NAME
+#   - EMAIL_ADDRESS
+#   - ECS_ROOT_PASSWORD
+#   - GITLAB_BUCKET_NAME
+#   - GITLAB_BUCKET_ENDPOINT
+#   - BUCKET_LOCAL_PATH
+#   - CI_PIPELINE_IID
+#   - OSSFS_VERSION
+#
 
-TODO new variable 
+echo "Building the certificate manager infrastructure (environment: ${ENV_NAME}, region: ${ALICLOUD_REGION})..."
+
+# Set values for Terraform and Packer variables
+export TF_VAR_env=${ENV_NAME}
+export TF_VAR_db_account_password=${DB_ACCOUNT_PASSWORD}
+export TF_VAR_ecs_root_password=${ECS_ROOT_PASSWORD}
+
+export IMAGE_VERSION=${CI_PIPELINE_IID}
+export ENVIRONMENT=${ENV_NAME}
+export BUCKET_NAME=${GITLAB_BUCKET_NAME}
+export GITLAB_BUCKET_ENDPOINT=${GITLAB_BUCKET_ENDPOINT}
+
+# Extract Alibaba Cloud information for building the application image
+cd infrastructure/15_certman/05_image
+export BUCKET_DIR_PATH="$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/15_certman/05_image"
+mkdir -p ${BUCKET_DIR_PATH}
+cp ${BUCKET_DIR_PATH}/*.tfstate* .
+terraform init -input=false
+terraform apply -input=false -auto-approve
+rm -f ${BUCKET_DIR_PATH}/*
+cp *.tfstate* ${BUCKET_DIR_PATH}
+export SOURCE_IMAGE=$(terraform output image_id)
+export INSTANCE_TYPE=$(terraform output instance_type)
+
+# Build the certificate manager image
+packer build certman_image.json
+
+# Create/update the ECS, SLB server group and forward rule
+cd ../10_ecs_slb_rule
+export BUCKET_DIR_PATH="$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/15_certman/10_ecs_slb_rule"
+mkdir -p ${BUCKET_DIR_PATH}
+cp ${BUCKET_DIR_PATH}/*.tfstate* .
+terraform init -input=false
+terraform apply -input=false -auto-approve
+rm -f ${BUCKET_DIR_PATH}/*
+cp *.tfstate* ${BUCKET_DIR_PATH}
+
+cd ../../..
+
+echo "Certificate manager infrastructure successfully built (environment: ${ENV_NAME}, region: ${ALICLOUD_REGION})."
+```
+This script is composed of two main parts:
+* Build the VM image (Terraform is used to obtain information from our Alibaba Cloud region);
+* Create / update our cloud resources with Terraform.
+
+Save this file with CTRL+X and edit ".gitlab-ci.yml":
+```bash
+# Edit the GitLab pipeline definition
+nano .gitlab-ci.yml
+```
+Add the following changes to ".gitlab-ci.yml":
+```yaml
+// ...
+variables:
+  // ...
   EMAIL_ADDRESS: "john.doe@example.org"
+  // ...
+
+// ...
+deploy:
+  // ...
+  script:
+    // ...
+    - "./gitlab-ci-scripts/deploy/build_webapp_infra.sh"
+    - "./gitlab-ci-scripts/deploy/build_certman_infra.sh"
+    - "umount $BUCKET_LOCAL_PATH"
+    // ...
+  // ...
+```
+Only two lines need to be added:
+* The new variable `EMAIL_ADDRESS`;
+* A call to our new Bash script "./gitlab-ci-scripts/deploy/build_certman_infra.sh".
+
+Save your changes with CTRL+X.
+
+Before we commit and push our modifications to GitLab, let's first add the new variable in the GitLab pipeline
+configuration:
+* Open GitLab (the URL must be like https://gitlab.my-sample-domain.xyz/);
+* Sign in if necessary;
+* Click on the "Projects" item in the top menu and select the "Your projects";
+* Click on the "todolist" project;
+* In the left menu select "Settings > CI/CD";
+* Expand the "Variables" panel, and create the following variable:
+  * EMAIL_ADDRESS = the email address where Let's Encrypt will send messages when the certificate will be expired.
+* Click on "Save variables";
+
+We can now commit our new scripts:
+```bash
+# Check files to commit
+git status
+
+# Add the modified and new files
+git add infrastructure/15_certman/
+git add gitlab-ci-scripts/deploy/build_certman_infra.sh
+git add .gitlab-ci.yml
+
+# Commit and push to GitLab
+git commit -m "Add the Certificate Manager."
+git push origin master
+```
+
+### Verification
