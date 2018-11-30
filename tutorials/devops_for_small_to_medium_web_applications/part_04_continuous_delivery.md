@@ -1547,25 +1547,36 @@ folder "gitlab-ci-scripts/deploy":
   
   # Run the Terraform scripts in 05_vpc_slb_eip_domain
   cd infrastructure/05_vpc_slb_eip_domain
-  mkdir -p "$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/05_vpc_slb_eip_domain"
-  terraform init -input=false -backend-config="path=$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/05_vpc_slb_eip_domain/terraform.tfstate"
+  export BUCKET_DIR_PATH="$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/05_vpc_slb_eip_domain"
+  mkdir -p ${BUCKET_DIR_PATH}
+  cp ${BUCKET_DIR_PATH}/*.tfstate* .
+  terraform init -input=false
   terraform apply -input=false -auto-approve
   terraform apply -input=false -auto-approve
   # Note: the last line has to be executed twice because of a bug in the alicloud_dns_record resource
+  rm -f ${BUCKET_DIR_PATH}/*
+  cp *.tfstate* ${BUCKET_DIR_PATH}
   
   # Run the Terraform scripts in 06_domain_step_2
   cd ../06_domain_step_2
-  mkdir -p "$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/06_domain_step_2"
-  terraform init -input=false -backend-config="path=$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/06_domain_step_2/terraform.tfstate"
+  export BUCKET_DIR_PATH="$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/06_domain_step_2"
+  mkdir -p ${BUCKET_DIR_PATH}
+  cp ${BUCKET_DIR_PATH}/*.tfstate* .
+  terraform init -input=false
   terraform apply -input=false -auto-approve
+  rm -f ${BUCKET_DIR_PATH}/*
+  cp *.tfstate* ${BUCKET_DIR_PATH}
   
   cd ../..
   
   echo "Basis infrastructure successfully built (environment: ${ENV_NAME}, region: ${ALICLOUD_REGION})."
   ```
-  Note: you can see how we combine OSSFS with the
-  [local backend](https://www.terraform.io/docs/backends/types/local.html) in order to save the tfstate files in our
-  OSS bucket.
+  Note 0: you can see how we download and then replace tfstate files on our OSS bucket before and after running
+  Terraform.
+  
+  Note 1: It is possible to directly configure the
+  [local backend](https://www.terraform.io/docs/backends/types/local.html) to directly target the folder mounted
+  by OSSFS (via the `terraform init` command). However there is a bug that corrupts tfstate files.
 * *build_webapp_infra.sh* runs the Terraform scripts to build the application infrastructure:
   ```bash
   #!/usr/bin/env bash
@@ -1600,16 +1611,24 @@ folder "gitlab-ci-scripts/deploy":
   
   # Create/update the application database
   cd infrastructure/10_webapp/05_rds
-  mkdir -p "$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/05_rds"
-  terraform init -input=false -backend-config="path=$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/05_rds/terraform.tfstate"
+  export BUCKET_DIR_PATH="$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/05_rds"
+  mkdir -p ${BUCKET_DIR_PATH}
+  cp ${BUCKET_DIR_PATH}/*.tfstate* .
+  terraform init -input=false
   terraform apply -input=false -auto-approve
+  rm -f ${BUCKET_DIR_PATH}/*
+  cp *.tfstate* ${BUCKET_DIR_PATH}
   export RDS_CONNECTION_STRING=$(terraform output app_rds_connection_string)
   
   # Extract Alibaba Cloud information for building the application image
   cd ../10_image
-  mkdir -p "$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/10_image"
-  terraform init -input=false -backend-config="path=$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/10_image/terraform.tfstate"
+  export BUCKET_DIR_PATH="$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/10_image"
+  mkdir -p ${BUCKET_DIR_PATH}
+  cp ${BUCKET_DIR_PATH}/*.tfstate* .
+  terraform init -input=false
   terraform apply -input=false -auto-approve
+  rm -f ${BUCKET_DIR_PATH}/*
+  cp *.tfstate* ${BUCKET_DIR_PATH}
   export SOURCE_IMAGE=$(terraform output image_id)
   export INSTANCE_TYPE=$(terraform output instance_type)
   
@@ -1618,9 +1637,13 @@ folder "gitlab-ci-scripts/deploy":
   
   # Create/update the ECS instances
   cd ../15_ecs
-  mkdir -p "$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/15_ecs"
-  terraform init -input=false -backend-config="path=$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/15_ecs/terraform.tfstate"
+  export BUCKET_DIR_PATH="$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/10_webapp/15_ecs"
+  mkdir -p ${BUCKET_DIR_PATH}
+  cp ${BUCKET_DIR_PATH}/*.tfstate* .
+  terraform init -input=false
   terraform apply -input=false -auto-approve -parallelism=1
+  rm -f ${BUCKET_DIR_PATH}/*
+  cp *.tfstate* ${BUCKET_DIR_PATH}
   
   cd ../../..
   

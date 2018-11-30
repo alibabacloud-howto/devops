@@ -15,11 +15,6 @@
 // Alibaba Cloud provider (source: https://github.com/terraform-providers/terraform-provider-alicloud)
 provider "alicloud" {}
 
-// Local backend (https://www.terraform.io/docs/backends/types/local.html)
-terraform {
-  backend "local" {}
-}
-
 // VSwitch in the first zone
 data "alicloud_vswitches" "app_vswitches_zone_0" {
   name_regex = "sample-app-vswitch-zone-0-${var.env}"

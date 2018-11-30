@@ -15,11 +15,6 @@
 // Alibaba Cloud provider (source: https://github.com/terraform-providers/terraform-provider-alicloud)
 provider "alicloud" {}
 
-// Local backend (https://www.terraform.io/docs/backends/types/local.html)
-terraform {
-  backend "local" {}
-}
-
 // Availability zones that support multi-AZ RDS
 data "alicloud_zones" "multi_az" {
   available_resource_creation = "Rds"
@@ -66,6 +61,8 @@ resource "alicloud_security_group_rule" "accept_8080_rule" {
 // Server load balancer
 resource "alicloud_slb" "app_slb" {
   name = "sample-app-slb-${var.env}"
+
+  specification = "slb.s1.small"
 
   internet = false
   vswitch_id = "${alicloud_vswitch.app_vswitch_zone_0.id}"

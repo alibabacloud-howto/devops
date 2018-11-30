@@ -15,11 +15,6 @@
 // Alibaba Cloud provider (source: https://github.com/terraform-providers/terraform-provider-alicloud)
 provider "alicloud" {}
 
-// Local backend (https://www.terraform.io/docs/backends/types/local.html)
-terraform {
-  backend "local" {}
-}
-
 // Our custom application image
 data "alicloud_images" "app_images" {
   owners = "self"

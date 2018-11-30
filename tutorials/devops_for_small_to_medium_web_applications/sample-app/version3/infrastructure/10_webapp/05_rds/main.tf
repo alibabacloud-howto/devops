@@ -15,11 +15,6 @@
 // Alibaba Cloud provider (source: https://github.com/terraform-providers/terraform-provider-alicloud)
 provider "alicloud" {}
 
-// Local backend (https://www.terraform.io/docs/backends/types/local.html)
-terraform {
-  backend "local" {}
-}
-
 // Multi-AZ RDS availability zone
 data "alicloud_zones" "multi_az" {
   available_resource_creation = "Rds"

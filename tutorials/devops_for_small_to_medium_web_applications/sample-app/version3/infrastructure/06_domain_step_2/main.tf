@@ -15,11 +15,6 @@
 // Alibaba Cloud provider (source: https://github.com/terraform-providers/terraform-provider-alicloud)
 provider "alicloud" {}
 
-// Local backend (https://www.terraform.io/docs/backends/types/local.html)
-terraform {
-  backend "local" {}
-}
-
 // Oversea domain record (oversea line = outside of Mainland China)
 data "alicloud_dns_records" "app_record_overseas" {
   domain_name = "${var.domain_name}"
