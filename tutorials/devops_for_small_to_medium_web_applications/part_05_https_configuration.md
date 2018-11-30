@@ -14,6 +14,8 @@ layout: default
    3. [GitLab pipeline](#gitlab-pipeline)
    4. [Verification](#verification)
 
+4. [Pre-production and production environments](#pre-production-and-production-environments)
+
 ## Introduction
 [HTTPS](https://en.wikipedia.org/wiki/HTTPS) is now a requirement for any professional
 website that needs to receive input from users, as it prevents
@@ -1003,7 +1005,7 @@ export TF_VAR_ecs_root_password=${ECS_ROOT_PASSWORD}
 export IMAGE_VERSION=${CI_PIPELINE_IID}
 export ENVIRONMENT=${ENV_NAME}
 export BUCKET_NAME=${GITLAB_BUCKET_NAME}
-export GITLAB_BUCKET_ENDPOINT=${GITLAB_BUCKET_ENDPOINT}
+export BUCKET_ENDPOINT=${GITLAB_BUCKET_ENDPOINT}
 
 # Extract Alibaba Cloud information for building the application image
 cd infrastructure/15_certman/05_image
@@ -1095,3 +1097,133 @@ git push origin master
 ```
 
 ### Verification
+Check the logs of the "deploy" stage on your CI / CD pipeline on GitLab and make sure there is no error.
+
+Let's check the status of our "Certificate Manager" ECS instance:
+* Open the [ECS console](https://ecs.console.aliyun.com/);
+* Click on the "Instance" item in the left menu;
+* Select your region if necessary;
+* Search for your instance named "sample-app-certman-ecs-dev";
+* Click on the "Connect" link on the left-side of your instance;
+* Authenticate yourself with the "root" user and the password you set in your ECS_ROOT_PASSWORD variable (in the GitLab
+  pipeline settings);
+* Check that the services "ossfs", "nginx" and "certificate-updater" are running:
+  ```bash
+  # Check the running services configured with SystemD
+  systemctl
+  ```
+  Note: you can scroll down by pressing the SPACE bar and quit by pressing Q.
+* Check Nginx is working as expected:
+  ```bash
+  # Check the "/health" request (the response must be "OK")
+  curl http://localhost:8080/health
+  
+  # Check the "/.well-known/" request (don't forget the last '/', the response must be "It works!")
+  curl http://localhost:8080/.well-known/
+  ```
+* Check the OSS bucket is mounted properly:
+  ```bash
+  # Check that OSSFS is working properly. It should contain the folders "backup", "certificate" and "infrastructure"
+  ls /mnt/oss_bucket
+  ```
+* Check the logs of the certificate updater:
+  ```bash
+  # Check the logs of the certificate updater
+  journalctl --unit=certificate-updater
+  ```
+
+You can then test the web application from your computer with the following command:
+```bash
+# Check that the SLB is well configured with the new certificate
+curl https://dev.my-sample-domain.xyz/
+```
+The `curl` command should succeed with the following logs:
+```
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>To-Do list</title>
+    <link rel="stylesheet" href="css/index.css" media="screen">
+</head>
+<body>
+<div id="react"></div>
+<script src="built/bundle.js"></script>
+</body>
+</html>
+```
+
+Open your application in your web browser with the HTTPS URL (i.e. https://dev.my-sample-domain.xyz/) and click on the
+padlock icon on the right of the URL bar. It should say that the connection is secured:
+
+![Secured connection](images/application-secured-connection.png)
+
+![Certificate details](images/application-secured-connection-details.png)
+
+## Pre-production and production environments
+Let's apply the changes on the pre-production:
+* Open GitLab (the URL must be like https://gitlab.my-sample-domain.xyz/);
+* Click on the "Projects" item in the top menu and select the "Your projects";
+* Click on the "todolist" project;
+* In the left menu select "Merge Requests";
+* Click on the "New merge request" button;
+* In the source branch, select "master";
+* In the target branch, select "pre-production";
+* Click on "Compare branches and continue";
+* Set the title field to "HTTPS configuration" and click on "Submit merge request";
+* Click on the "Merge" button;
+* Follow the pipeline by click on the "CI / CD" left menu item.
+
+The pipeline should run with success (unfortunately it now takes about 1h to execute the complete process).
+
+After the pipeline execution, you can quickly check that it worked with curl:
+```bash
+# Check that the pre-production environment is properly updated
+curl https://pre-prod.my-sample-domain.xyz/
+```
+The `curl` command should succeed with the following output:
+```
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>To-Do list</title>
+    <link rel="stylesheet" href="css/index.css" media="screen">
+</head>
+<body>
+<div id="react"></div>
+<script src="built/bundle.js"></script>
+</body>
+</html>
+```
+
+Let's do the same with the production environment:
+* In your GitLab tab, select the left menu "Merge Requests";
+* Click on the "New merge request" button;
+* In the source branch, select "pre-production";
+* In the target branch, select "production";
+* Click on "Compare branches and continue";
+* Set the title field to "HTTPS configuration" and click on "Submit merge request";
+* Click on the "Merge" button;
+* Follow the pipeline by click on the "CI / CD" left menu item.
+
+Again, the pipeline should succeed like the other branches. After its execution check the result with curl:
+```bash
+# Check that the production environment is well configured
+curl https://www.my-sample-domain.xyz/
+```
+The `curl` command should succeed as well:
+```
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>To-Do list</title>
+    <link rel="stylesheet" href="css/index.css" media="screen">
+</head>
+<body>
+<div id="react"></div>
+<script src="built/bundle.js"></script>
+</body>
+</html>
+```
