@@ -492,7 +492,7 @@ This file contains the following modifications:
 Before committing these two files, we need to properly set the `SONAR_URL` and `SONAR_LOGIN` variables:
 * Open GitLab (the URL must be like https://gitlab.my-sample-domain.xyz/);
 * Sign in if necessary;
-* Click on the "Projects" item in the top menu and select the "Your projects";
+* Click on the "Projects" item in the top menu and select "Your projects";
 * Click on the "todolist" project;
 * In the left menu select "Settings > CI/CD";
 * Expand the "Variables" panel, and create the following variables:

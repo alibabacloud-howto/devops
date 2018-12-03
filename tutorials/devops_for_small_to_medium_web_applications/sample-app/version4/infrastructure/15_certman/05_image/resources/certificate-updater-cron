@@ -1,0 +1,7 @@
+#
+# Execute the certificate updater.
+#
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+15 */12 * * * root /usr/bin/python2.7 /opt/certificate-updater.py 2>&1 | /usr/bin/logger -t certificate-updater
