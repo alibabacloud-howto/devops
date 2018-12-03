@@ -286,7 +286,7 @@ git push origin master
 
 Pushing your code to GitLab triggers something interesting:
 * Open GitLab in your web browser (the URL must be like https://gitlab.my-sample-domain.xyz/);
-* Click on the "Projects" item in the top menu and select the "Your projects";
+* Click on the "Projects" item in the top menu and select "Your projects";
 * Click on the "todolist" project; You should be able to see your files;
 * Click in the "CI / CD" item in the left menu and select "Pipelines";
 

@@ -1280,7 +1280,7 @@ by OSSFS:
 * Click on the "Instance" item in the left menu;
 * Select your region if necessary;
 * Search for your instance named "devops-simple-app-gitlab-runner";
-* Click on the "Connect" link on the left-side of your instance;
+* Click on the "Connect" link on the right side of your instance;
 * The VNC console should appear: copy the VNC password displayed in the popup and paste it to the next one;
 * Authenticate yourself with the "root" user and the password you set when you
   [configured GitLab](part_01_gitlab_installation_and_configuration.md#gitlab-runner-installation-and-configuration);
@@ -1655,7 +1655,7 @@ folder "gitlab-ci-scripts/deploy":
 Before we commit these scripts, we first need to add new variables in our GitLab project configuration:
 * Open GitLab (the URL must be like https://gitlab.my-sample-domain.xyz/);
 * Sign in if necessary;
-* Click on the "Projects" item in the top menu and select the "Your projects";
+* Click on the "Projects" item in the top menu and select "Your projects";
 * Click on the "todolist" project;
 * In the left menu select "Settings > CI/CD";
 * Expand the "Variables" panel, and create the following variables:

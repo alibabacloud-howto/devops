@@ -129,7 +129,7 @@ variable "certificate_private_key_path" {
 ```
 
 Then we modify the script "gitlab-ci-scripts/deploy/build_basis_infra.sh" again by adding the following lines under
-`export TF_VAR_domain_name=${DOMAIN_NAME}`:
+`export TF_VAR_sub_domain_name=${SUB_DOMAIN_NAME}`:
 ```bash
 export TF_VAR_certificate_public_key_path=${CERT_PUBLIC_KEY_PATH}
 export TF_VAR_certificate_private_key_path=${CERT_PRIVATE_KEY_PATH}
@@ -277,7 +277,7 @@ listener configuration:
 * Nginx must be installed and configured to serve files from the "/var/www/html/certman/.well-known/" folder;
 * Nginx must also responds "OK" when the SLB health check system queries its "/health";
 * OSSFS must be installed and configured to allow the certificate to be stored on our OSS bucket (the goal is to
-  avoid hitting Let's Encrypt [rate limits](https://letsencrypt.org/docs/rate-limits/));
+  avoid reaching Let's Encrypt [rate limits](https://letsencrypt.org/docs/rate-limits/));
 * Certbot must be installed and called via a [Python](https://www.python.org/) script that will regularly check whether
   the current certificate is up to date, renew it when necessary and update the SLB HTTPS listener configuration.
 
@@ -347,9 +347,9 @@ Enter the following content into the new file:
 }
 ```
 This script executes the following actions:
-* Updates the default Ubuntu installation and install Nginx. It then creates the folders and files
-  that will be used to serve HTTP requests to "/health" and "/.well-known/";
-* Uploads an Nginx configuration file we haven't created yet (see below);
+* Update the default Ubuntu installation and install Nginx;
+* Create the folders and files that will be used to respond to HTTP requests for "/health" and "/.well-known/";
+* Upload a Nginx configuration file (we will create it in a moment, see below);
 * Activate the uploaded configuration and configure Systemd to automatically start Nginx when the machine starts.
 
 Save and quit by pressing CTRL+X, then create the Nginx configuration file:
@@ -375,10 +375,10 @@ server {
 }
 ```
 The most interesting parts of this file are the listening port (8080, the same as our application in order to reuse our
-existing SLB configuration) and the root folder "/var/www/html/certman" (were we have already created the "health" file
+existing configuration) and the root folder "/var/www/html/certman" (were we have already created the "health" file
 and ".well-known" folder).
 
-Save and quit by pressing CTRL+X. Let's extend our Packer script:
+Save and quit by pressing CTRL+X. Now let's extend our Packer script:
 ```bash
 # Edit the packer script
 nano certman_image.json
@@ -426,13 +426,13 @@ Edit the content with the following changes:
   ]
 }
 ```
-This addition add two provisioners that:
-* Upload a Systemd file we haven't created yet (see below);
+This addition adds two provisioners that:
+* Upload a Systemd file "ossfs.service" (see below);
 * Install OSSFS, configure it and configure Systemd to start OSSFS when the machine boots.
 
 Save and close by pressing CTRL+X, then create the Systemd file:
 ```bash
-# Create the Systemd configuration filenano 
+# Create the Systemd configuration file for OSSFS
 nano resources/ossfs.service
 ```
 Copy the following content to this new file:
@@ -545,11 +545,11 @@ must contain an email address where we want to receive messages from Let's Encry
 expire.
 
 We are also uploading many new files:
-* certificate-updater.py - a script written in Python that check whether the current certificate it up to date,
-  renew it if necessary, and change the SLB configuration;
+* certificate-updater.py - a script written in Python that checks whether the current certificate it up to date,
+  renews it if necessary, and changes the SLB configuration;
 * certificate-updater-config.ini - the configuration file for "certificate-updater.py";
-* certificate-updater.service - a SystemD script in order to execute "certificate-updater.py" when the VM starts;
-* certificate-updater-cron - a [Cron](https://en.wikipedia.org/wiki/Cron) script in order to run
+* certificate-updater.service - a SystemD script to execute "certificate-updater.py" when the VM starts;
+* certificate-updater-cron - a [Cron](https://en.wikipedia.org/wiki/Cron) script to run
   "certificate-updater.py" periodically.
 
 The last provisioner installs certbot and libraries for our Python script, updates the Python script configuration,
@@ -838,7 +838,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 15 */12 * * * root /usr/bin/python2.7 /opt/certificate-updater.py 2>&1 | /usr/bin/logger -t certificate-updater
 ```
-This file configures Cron to run our Python script every day and 12h15 AM / PM. The console output is sent to syslog
+This file configures Cron to run our Python script every day at 12h15 AM / PM. The console output is sent to syslog
 with the [logger command](http://man7.org/linux/man-pages/man1/logger.1.html).
 
 Save this file with CTRL+X.
@@ -965,7 +965,7 @@ ECS instance. This redirection is made possible via a
 Save and close this file with CTRL+X.
 
 ### GitLab pipeline
-Let's integrate our new scripts to our GitLab pipeline. Let's create a Bash script that will call Packer and Terraform:
+Let's integrate our new scripts to our GitLab pipeline. Let's create a Bash script that calls Packer and Terraform:
 ```bash
 # Go to the project folder
 cd ~/projects/todolist
@@ -1074,11 +1074,11 @@ Before we commit and push our modifications to GitLab, let's first add the new v
 configuration:
 * Open GitLab (the URL must be like https://gitlab.my-sample-domain.xyz/);
 * Sign in if necessary;
-* Click on the "Projects" item in the top menu and select the "Your projects";
+* Click on the "Projects" item in the top menu and select "Your projects";
 * Click on the "todolist" project;
 * In the left menu select "Settings > CI/CD";
 * Expand the "Variables" panel, and create the following variable:
-  * EMAIL_ADDRESS = the email address where Let's Encrypt will send messages when the certificate will be expired.
+  * EMAIL_ADDRESS = the email address where Let's Encrypt will send messages when the certificate is going to expire.
 * Click on "Save variables";
 
 We can now commit our new scripts:
@@ -1104,7 +1104,7 @@ Let's check the status of our "Certificate Manager" ECS instance:
 * Click on the "Instance" item in the left menu;
 * Select your region if necessary;
 * Search for your instance named "sample-app-certman-ecs-dev";
-* Click on the "Connect" link on the left-side of your instance;
+* Click on the "Connect" link on the right side of your instance;
 * Authenticate yourself with the "root" user and the password you set in your ECS_ROOT_PASSWORD variable (in the GitLab
   pipeline settings);
 * Check that the services "ossfs", "nginx" and "certificate-updater" are running:
@@ -1154,7 +1154,7 @@ The `curl` command should succeed with the following logs:
 ```
 
 Open your application in your web browser with the HTTPS URL (i.e. https://dev.my-sample-domain.xyz/) and click on the
-padlock icon on the right of the URL bar. It should say that the connection is secured:
+padlock icon on the right of the URL bar. It should indicate that the connection is secured:
 
 ![Secured connection](images/application-secured-connection.png)
 
@@ -1163,7 +1163,7 @@ padlock icon on the right of the URL bar. It should say that the connection is s
 ## Pre-production and production environments
 Let's apply the changes on the pre-production:
 * Open GitLab (the URL must be like https://gitlab.my-sample-domain.xyz/);
-* Click on the "Projects" item in the top menu and select the "Your projects";
+* Click on the "Projects" item in the top menu and select "Your projects";
 * Click on the "todolist" project;
 * In the left menu select "Merge Requests";
 * Click on the "New merge request" button;
@@ -1172,9 +1172,10 @@ Let's apply the changes on the pre-production:
 * Click on "Compare branches and continue";
 * Set the title field to "HTTPS configuration" and click on "Submit merge request";
 * Click on the "Merge" button;
-* Follow the pipeline by click on the "CI / CD" left menu item.
+* Follow the pipeline by clicking on the "CI / CD" left menu item.
 
-The pipeline should run with success (unfortunately it now takes about 1h to execute the complete process).
+The pipeline should run with success (unfortunately it now takes about 1h to execute the complete process, mainly
+because of the Packer scripts).
 
 After the pipeline execution, you can quickly check that it worked with curl:
 ```bash
@@ -1205,9 +1206,9 @@ Let's do the same with the production environment:
 * Click on "Compare branches and continue";
 * Set the title field to "HTTPS configuration" and click on "Submit merge request";
 * Click on the "Merge" button;
-* Follow the pipeline by click on the "CI / CD" left menu item.
+* Follow the pipeline by clicking on the "CI / CD" left menu item.
 
-Again, the pipeline should succeed like the other branches. After its execution check the result with curl:
+Again, the pipeline should succeed like the other branches. After its execution, check the result with curl:
 ```bash
 # Check that the production environment is well configured
 curl https://www.my-sample-domain.xyz/
