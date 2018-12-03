@@ -8,12 +8,10 @@ layout: default
 1. [Architecture](#architecture)
 2. [SLB configuration](#slb-configuration)
 3. [Certificate manager](#certificate-manager)
-
-   1. [VM image](#vm-image)
-   2. [Cloud resources](#cloud-resources)
-   3. [GitLab pipeline](#gitlab-pipeline)
-   4. [Verification](#verification)
-
+    1. [VM image](#vm-image)
+    2. [Cloud resources](#cloud-resources)
+    3. [GitLab pipeline](#gitlab-pipeline)
+    4. [Verification](#verification)
 4. [Pre-production and production environments](#pre-production-and-production-environments)
 
 ## Introduction
