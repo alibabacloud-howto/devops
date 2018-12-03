@@ -1,0 +1,152 @@
+{
+  "variables": {
+    "access_key": "{{env `ALICLOUD_ACCESS_KEY`}}",
+    "secret_key": "{{env `ALICLOUD_SECRET_KEY`}}",
+    "region_id": "{{env `ALICLOUD_REGION`}}",
+    "source_image": "{{env `SOURCE_IMAGE`}}",
+    "image_version": "{{env `IMAGE_VERSION`}}",
+    "instance_type": "{{env `INSTANCE_TYPE`}}",
+    "environment": "{{env `ENVIRONMENT`}}",
+    "domain": "{{env `DOMAIN_NAME`}}",
+    "sub_domain": "{{env `SUB_DOMAIN_NAME`}}",
+    "email_address": "{{env `EMAIL_ADDRESS`}}",
+    "ossfs_version": "{{env `OSSFS_VERSION`}}",
+    "bucket_name": "{{env `BUCKET_NAME`}}",
+    "bucket_endpoint": "{{env `BUCKET_ENDPOINT`}}"
+  },
+  "builders": [
+    {
+      "type": "alicloud-ecs",
+      "access_key": "{{user `access_key`}}",
+      "secret_key": "{{user `secret_key`}}",
+      "region": "{{user `region_id`}}",
+      "image_name": "sample-app-certman-image-{{user `environment`}}-{{user `image_version`}}",
+      "image_description": "Certificate manager ({{user `environment`}} environment).",
+      "image_version": "{{user `image_version`}}",
+      "source_image": "{{user `source_image`}}",
+      "ssh_username": "root",
+      "instance_type": "{{user `instance_type`}}",
+      "io_optimized": "true",
+      "internet_charge_type": "PayByTraffic",
+      "image_force_delete": "true"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "export DEBIAN_FRONTEND=noninteractive",
+        "apt-get -y update",
+        "apt-get -y upgrade",
+        "apt-get -y install nginx",
+        "mkdir -p /var/www/html/certman/.well-known",
+        "echo \"OK\" > /var/www/html/certman/health",
+        "echo \"It works!\" > /var/www/html/certman/.well-known/index.html"
+      ],
+      "pause_before": "30s"
+    },
+    {
+      "type": "file",
+      "source": "resources/nginx-conf-certman",
+      "destination": "/etc/nginx/sites-available/certman"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "ln -sf /etc/nginx/sites-available/certman /etc/nginx/sites-enabled/certman",
+        "nginx -t",
+        "systemctl enable nginx"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "resources/ossfs.service",
+      "destination": "/etc/systemd/system/ossfs.service"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "export OSSFS_VERSION=\"{{user `ossfs_version`}}\"",
+        "export ALICLOUD_ACCESS_KEY=\"{{user `access_key`}}\"",
+        "export ALICLOUD_SECRET_KEY=\"{{user `secret_key`}}\"",
+        "export BUCKET_NAME=\"{{user `bucket_name`}}\"",
+        "export BUCKET_ENDPOINT=\"{{user `bucket_endpoint`}}\"",
+        "export DEBIAN_FRONTEND=noninteractive",
+        "apt-get -y install gdebi-core wget",
+        "cd /tmp",
+        "wget \"https://github.com/aliyun/ossfs/releases/download/v${OSSFS_VERSION}/ossfs_${OSSFS_VERSION}_ubuntu16.04_amd64.deb\"",
+        "gdebi -n \"ossfs_${OSSFS_VERSION}_ubuntu16.04_amd64.deb\"",
+        "echo \"$BUCKET_NAME:$ALICLOUD_ACCESS_KEY:$ALICLOUD_SECRET_KEY\" > /etc/passwd-ossfs",
+        "chmod 640 /etc/passwd-ossfs",
+        "mkdir -p /mnt/oss_bucket",
+        "export ESCAPED_BUCKET_NAME=$(echo $BUCKET_NAME | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_BUCKET_ENDPOINT=$(echo $BUCKET_ENDPOINT | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "sed -i \"s/%BUCKET_NAME%/${ESCAPED_BUCKET_NAME}/\" /etc/systemd/system/ossfs.service",
+        "sed -i \"s/%BUCKET_ENDPOINT%/${ESCAPED_BUCKET_ENDPOINT}/\" /etc/systemd/system/ossfs.service",
+        "systemctl enable ossfs.service"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "mkdir -p /etc/certificate-updater/"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "resources/certificate-updater-config.ini",
+      "destination": "/etc/certificate-updater/config.ini"
+    },
+    {
+      "type": "file",
+      "source": "resources/certificate-updater.py",
+      "destination": "/opt/certificate-updater.py"
+    },
+    {
+      "type": "file",
+      "source": "resources/certificate-updater.service",
+      "destination": "/etc/systemd/system/certificate-updater.service"
+    },
+    {
+      "type": "file",
+      "source": "resources/certificate-updater-cron",
+      "destination": "/etc/cron.d/certificate-updater"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "export DEBIAN_FRONTEND=noninteractive",
+        "export ALICLOUD_ACCESS_KEY=\"{{user `access_key`}}\"",
+        "export ALICLOUD_SECRET_KEY=\"{{user `secret_key`}}\"",
+        "export ALICLOUD_REGION=\"{{user `region_id`}}\"",
+        "export ENVIRONMENT=\"{{user `environment`}}\"",
+        "export DOMAIN=\"{{user `domain`}}\"",
+        "export SUB_DOMAIN=\"{{user `sub_domain`}}\"",
+        "export EMAIL_ADDRESS=\"{{user `email_address`}}\"",
+        "apt-get -y install software-properties-common",
+        "add-apt-repository -y ppa:certbot/certbot",
+        "apt-get -y update",
+        "apt-get -y install python-certbot-nginx",
+        "pip install aliyun-python-sdk-core --upgrade",
+        "pip install aliyun-python-sdk-slb --upgrade",
+        "pip install pyopenssl --upgrade",
+        "pip install pytz --upgrade",
+        "export ESCAPED_ACCESS_KEY=$(echo $ALICLOUD_ACCESS_KEY | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_SECRET_KEY=$(echo $ALICLOUD_SECRET_KEY | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_REGION=$(echo $ALICLOUD_REGION | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_ENVIRONMENT=$(echo $ENVIRONMENT | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_DOMAIN=$(echo $DOMAIN | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_SUB_DOMAIN=$(echo $SUB_DOMAIN | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "export ESCAPED_EMAIL_ADDRESS=$(echo $EMAIL_ADDRESS | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+        "sed -i \"s/%access-key-id%/${ESCAPED_ACCESS_KEY}/\" /etc/certificate-updater/config.ini",
+        "sed -i \"s/%access-key-secret%/${ESCAPED_SECRET_KEY}/\" /etc/certificate-updater/config.ini",
+        "sed -i \"s/%region-id%/${ESCAPED_REGION}/\" /etc/certificate-updater/config.ini",
+        "sed -i \"s/%environment%/${ESCAPED_ENVIRONMENT}/\" /etc/certificate-updater/config.ini",
+        "sed -i \"s/%domain%/${ESCAPED_DOMAIN}/\" /etc/certificate-updater/config.ini",
+        "sed -i \"s/%sub-domain%/${ESCAPED_SUB_DOMAIN}/\" /etc/certificate-updater/config.ini",
+        "sed -i \"s/%email-address%/${ESCAPED_EMAIL_ADDRESS}/\" /etc/certificate-updater/config.ini",
+        "systemctl enable certificate-updater.service"
+      ]
+    }
+  ]
+}

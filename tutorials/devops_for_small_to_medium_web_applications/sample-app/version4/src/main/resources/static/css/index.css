@@ -1,0 +1,91 @@
+html {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+html, body, #react, #app {
+    height: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    display: flex;
+    align-items: center;
+
+    background-color: #343a40;
+    color: white;
+
+    height: 50px;
+    padding: 8px 14%;
+}
+
+#header-title {
+    flex: 1;
+    font-size: 1.5rem;
+}
+
+#header-context {
+    font-size: 0.9rem;
+}
+
+#task-list {
+    flex: 1;
+    padding: 8px 14%;
+}
+
+#task-list > table {
+    border-collapse: collapse;
+}
+
+#task-list > table th, #task-list > table td {
+    border: 1px solid #ccc;
+    padding: 8px;
+
+    text-align: left;
+}
+
+#task-list > table th {
+    padding-top: 16px;
+    padding-bottom: 16px;
+    background-color: #f7f7f7;
+}
+
+.task-list-actions {
+    width: 1%;
+    white-space: nowrap;
+}
+
+#task-list button {
+    border: 1px solid #007bff;
+    border-radius: .25rem;
+
+    padding: .375rem .75rem;
+
+    background-color: #007bff;
+    color: #fff;
+
+    cursor: pointer;
+}
+
+#task-list button:hover {
+    border-color: #0069d9;
+    background-color: #0069d9;
+}
+
+#task-list input[type=text] {
+    border: 1px solid #ccc;
+    border-radius: .25rem;
+
+    padding: .375rem .75rem;
+
+    min-width: 40%;
+}
+
+#task-list form input, #task-list form button {
+    margin-left: 8px;
+}
