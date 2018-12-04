@@ -62,7 +62,7 @@ print("    runCertBot              = %s" % runCertBot)
 if runCertBot:
     print("Executing certbot...")
     returnCode = subprocess.call(
-        "certbot certonly --webroot -w /var/www/html/certman/.well-known/ -d \"%s.%s\" --non-interactive "
+        "certbot certonly --webroot -w /var/www/html/certman/ -d \"%s.%s\" --non-interactive "
         "--agree-tos --email \"%s\"" % (subDomain, domain, emailAddress), shell=True)
     if returnCode != 0:
         print("Unable to run certbot, quitting...")

@@ -39,9 +39,10 @@
         "apt-get -y update",
         "apt-get -y upgrade",
         "apt-get -y install nginx",
-        "mkdir -p /var/www/html/certman/.well-known",
+        "mkdir -p /var/www/html/certman/.well-known/acme-challenge",
         "echo \"OK\" > /var/www/html/certman/health",
-        "echo \"It works!\" > /var/www/html/certman/.well-known/index.html"
+        "echo \"It works!\" > /var/www/html/certman/.well-known/index.html",
+        "echo \"It works!\" > /var/www/html/certman/.well-known/acme-challenge/index.html"
       ],
       "pause_before": "30s"
     },

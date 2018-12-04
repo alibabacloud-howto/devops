@@ -322,9 +322,10 @@ Enter the following content into the new file:
         "apt-get -y update",
         "apt-get -y upgrade",
         "apt-get -y install nginx",
-        "mkdir -p /var/www/html/certman/.well-known",
+        "mkdir -p /var/www/html/certman/.well-known/acme-challenge",
         "echo \"OK\" > /var/www/html/certman/health",
-        "echo \"It works!\" > /var/www/html/certman/.well-known/index.html"
+        "echo \"It works!\" > /var/www/html/certman/.well-known/index.html",
+        "echo \"It works!\" > /var/www/html/certman/.well-known/acme-challenge/index.html"
       ],
       "pause_before": "30s"
     },
@@ -656,7 +657,7 @@ print("    runCertBot              = %s" % runCertBot)
 if runCertBot:
     print("Executing certbot...")
     returnCode = subprocess.call(
-        "certbot certonly --webroot -w /var/www/html/certman/.well-known/ -d \"%s.%s\" --non-interactive "
+        "certbot certonly --webroot -w /var/www/html/certman/ -d \"%s.%s\" --non-interactive "
         "--agree-tos --email \"%s\"" % (subDomain, domain, emailAddress), shell=True)
     if returnCode != 0:
         print("Unable to run certbot, quitting...")
