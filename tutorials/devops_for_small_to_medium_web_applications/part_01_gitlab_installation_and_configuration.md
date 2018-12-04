@@ -155,7 +155,7 @@ ssh root@gitlab.my-sample-domain.xyz # Use the password you set when you have cr
 
 # Install dependencies
 apt-get install ca-certificates openssh-server
-apt-get postfix # During the installation, select "Internet Site" and set your domain (e.g. gitlab.my-sample-domain.xyz)
+apt-get install postfix # During the installation, select "Internet Site" and set your domain (e.g. gitlab.my-sample-domain.xyz)
 
 # Open GitLab configuration
 nano /etc/gitlab/gitlab.rb
