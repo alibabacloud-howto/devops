@@ -6,6 +6,7 @@ layout: default
 ## Summary
 0. [Introduction](#introduction)
 1. [Prerequisite](#prerequisite)
+2. [Rancher installation](#rancher-installation)
 
 ## Introduction
 [Rancher](https://rancher.com/) is a multi-cluster [Kubernetes](https://kubernetes.io) management platform. The goal
@@ -26,8 +27,53 @@ Please also make sure you are familiarized with Kubernetes. If you need, you can
 this [tutorial](https://kubernetes.io/docs/tutorials/kubernetes-basics/) to learn the basics. You will also need
 to [setup the command line tool 'kubectl'](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
 
-You should also have [Git](https://git-scm.com/) installed on your computer.
-
 Important: please download the 
 [related resources](https://github.com/alibabacloud-howto/devops/tree/master/tutorials/getting_started_with_rancher)
 before moving to the next section.
+
+## Rancher installation
+There are two ways to [setup](https://rancher.com/docs/rancher/v2.x/en/installation/) Rancher:
+* Single-node configuration;
+* High-Availability configuration.
+
+We will choose the first way as it makes things simpler.
+
+Open a terminal on your computer and execute the following instructions:
+```bash
+# Go to the folder where you have downloaded this tutorial
+cd path/to/this/tutorial
+
+# Go to the Rancher environment folder
+cd environment/rancher
+
+# Download the latest stable version of the Alibaba Cloud provider
+terraform init
+
+# Configure the Alibaba Cloud provider
+export ALICLOUD_ACCESS_KEY="your-accesskey-id"
+export ALICLOUD_SECRET_KEY="your-accesskey-secret"
+export ALICLOUD_REGION="your-region-id"
+
+# Configure variables for the Terraform scripts
+export TF_VAR_ecs_root_password="your-root-password"
+
+# Create the resources in the cloud
+terraform apply
+```
+The last command should ask you to confirm by entering "yes" and should end with similar logs:
+```
+Apply complete! Resources: 9 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+rancher_eip_ip_address = 161.117.4.26
+```
+Open a web browser tab and enter the URL corresponding to https://<rancher_eip_ip_address> 
+(e.g. https://161.117.4.26/). Your web browser will complain that the connection is unsecured (which is normal
+because we didn't configure any SSL/TLS certificate), just add an exception and continue browsing.
+
+You should get a page like this:
+
+![First Rancher screen](images/rancher_first_screen.png)
+
+Set an administrator password and click on the "Continue" button.
