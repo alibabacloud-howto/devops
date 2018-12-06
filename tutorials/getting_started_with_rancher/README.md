@@ -138,6 +138,10 @@ Let's consider the following example where a system needs a total of 160 vCPUs:
 * If the fault tolerance is 20%, we cannot lose more than 32 vCPUs, so a valid configuration is 5 workers
   of 32 vCPUs each.
 
+About the amount of RAM for each worker, the document gives the following rule of thumb in case of applications that are
+relatively greedy in memory, such as Java applications: a good ratio is 8GB of RAM per vCPU, so if we choose an instance
+type with 4 vCPUs, then we need to take 32GB of RAM.
+
 ### Cluster creation
 Open a terminal on your computer and execute the following instructions:
 ```bash
@@ -162,7 +166,7 @@ export TF_VAR_master_instance_ram_amount=8 # in GB
 export TF_VAR_master_instance_disk_size=20 # in GB
 export TF_VAR_worker_instance_count=2
 export TF_VAR_worker_instance_cpu_count=4
-export TF_VAR_worker_instance_ram_amount=16 # in GB
+export TF_VAR_worker_instance_ram_amount=32 # in GB
 export TF_VAR_worker_instance_disk_size=40 # in GB
 
 # Create the resources in the cloud
