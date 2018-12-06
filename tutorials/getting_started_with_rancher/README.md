@@ -7,7 +7,9 @@ layout: default
 0. [Introduction](#introduction)
 1. [Prerequisite](#prerequisite)
 2. [Rancher installation](#rancher-installation)
-3. [Kubernetes cluster creation](#kubernetes-cluster-creation)
+3. [Kubernetes cluster](#kubernetes-cluster)
+    1. [Cluster sizing](#cluster-sizing)
+    2. [Cluster creation](#cluster-creation)
 
 ## Introduction
 [Rancher](https://rancher.com/) is a multi-cluster [Kubernetes](https://kubernetes.io) management platform. The goal
@@ -88,12 +90,13 @@ You should see the clusters page:
 
 ![Rancher clusters](images/rancher_clusters.png)
 
-## Kubernetes cluster creation
+## Kubernetes cluster
 Unfortunately the integration with
 [Alibaba Cloud Container Service](https://www.alibabacloud.com/product/container-service) is not yet supported by
 the current version of Rancher (v2.1.3). However we can create a Kubernetes cluster with Terraform and import it
 manually to Rancher.
 
+### Cluster sizing
 Before creating our cluster we need to size it correctly. Currently in Alibaba Cloud, a Kubernetes cluster must have
 exactly 3 master nodes, but the node instance types (number of CPUs and amount of RAM) and number of worker nodes are
 flexible.
@@ -112,6 +115,7 @@ this article proposes the following configurations:
 According to the same article, the disk size for each master node doesn't need to be large, as it mainly contains
 the OS (about 3GB), docker images, system and application logs, temporary data, ...etc.
 
+### Cluster creation
 Open a terminal on your computer and execute the following instructions:
 ```bash
 # Go to the folder where you have downloaded this tutorial
