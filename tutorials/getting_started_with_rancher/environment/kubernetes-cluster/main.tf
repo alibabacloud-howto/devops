@@ -34,7 +34,7 @@ resource "alicloud_vswitch" "rancher_k8s_vswitch_zone_0" {
 resource "alicloud_vswitch" "rancher_k8s_vswitch_zone_1" {
   name = "rancher-k8s-vswitch-zone-1"
   availability_zone = "${data.alicloud_zones.az.zones.1.id}"
-  cidr_block = "192.168.0.1/24"
+  cidr_block = "192.168.1.0/24"
   vpc_id = "${alicloud_vpc.rancher_k8s_vpc.id}"
 }
 
@@ -74,6 +74,31 @@ resource "alicloud_security_group_rule" "accept_443_rule" {
   cidr_ip = "0.0.0.0/0"
 }
 
+// NAT Gateway (necessary for the Kubernetes cluster)
+resource "alicloud_nat_gateway" "rancher_k8s_nat_gateway" {
+  name = "rancher-k8s-nat-gateway"
+  vpc_id = "${alicloud_vpc.rancher_k8s_vpc.id}"
+  specification = "Small"
+}
+resource "alicloud_eip" "rancher_k8s_nat_eip" {
+  name = "rancher-k8s-nat-eip"
+  bandwidth = 10
+}
+resource "alicloud_eip_association" "rancher_k8s_eip_association" {
+  allocation_id = "${alicloud_eip.rancher_k8s_nat_eip.id}"
+  instance_id = "${alicloud_nat_gateway.rancher_k8s_nat_gateway.id}"
+}
+resource "alicloud_snat_entry" "rancher_k8s_snat_entry_zone_0" {
+  snat_table_id = "${alicloud_nat_gateway.rancher_k8s_nat_gateway.snat_table_ids}"
+  source_vswitch_id = "${alicloud_vswitch.rancher_k8s_vswitch_zone_0.id}"
+  snat_ip = "${alicloud_eip.rancher_k8s_nat_eip.ip_address}"
+}
+resource "alicloud_snat_entry" "rancher_k8s_snat_entry_zone_1" {
+  snat_table_id = "${alicloud_nat_gateway.rancher_k8s_nat_gateway.snat_table_ids}"
+  source_vswitch_id = "${alicloud_vswitch.rancher_k8s_vswitch_zone_1.id}"
+  snat_ip = "${alicloud_eip.rancher_k8s_nat_eip.ip_address}"
+}
+
 // Kubernetes Cluster
 data "alicloud_instance_types" "k8s_master_types_zone_0" {
   availability_zone = "${alicloud_vswitch.rancher_k8s_vswitch_zone_0.availability_zone}"
@@ -96,13 +121,14 @@ data "alicloud_instance_types" "k8s_worker_types_zone_1" {
   memory_size = "${var.worker_instance_ram_amount}"
 }
 resource "alicloud_cs_kubernetes" "rancher_k8s_cluster" {
-  name_prefix = "rancher-k8s-cluster"
+  name = "rancher-k8s-cluster"
   vswitch_ids = [
     "${alicloud_vswitch.rancher_k8s_vswitch_zone_0.id}",
     "${alicloud_vswitch.rancher_k8s_vswitch_zone_1.id}",
     "${alicloud_vswitch.rancher_k8s_vswitch_zone_1.id}",
     // Note: the same VSwitch is used for 2 nodes, as several regions do not have 3 avalability zones
   ]
+  new_nat_gateway = false
 
   master_instance_types = [
     "${data.alicloud_instance_types.k8s_master_types_zone_0.instance_types.0.id}",
@@ -116,10 +142,13 @@ resource "alicloud_cs_kubernetes" "rancher_k8s_cluster" {
   ]
   master_disk_category = "cloud_ssd"
   worker_disk_category = "cloud_ssd"
-  master_disk_size = "${var.master_instance_ram_amount}"
-  worker_disk_size = "${var.worker_instance_ram_amount}"
+  master_disk_size = "${var.master_instance_disk_size}"
+  worker_disk_size = "${var.worker_instance_disk_size}"
   worker_numbers = [
-    "${var.worker_instance_count}"
+    "${ceil(var.worker_instance_count / 2)}",
+    "${floor(var.worker_instance_count / 2)}",
+    "0"
+    // Note: The two last zones are the same.
   ]
   password = "${var.ecs_root_password}"
   enable_ssh = true
@@ -127,4 +156,9 @@ resource "alicloud_cs_kubernetes" "rancher_k8s_cluster" {
   cluster_network_type = "flannel"
   pod_cidr = "172.20.0.0/16"
   service_cidr = "172.21.0.0/20"
+
+  depends_on = [
+    "alicloud_snat_entry.rancher_k8s_snat_entry_zone_0",
+    "alicloud_snat_entry.rancher_k8s_snat_entry_zone_1",
+  ]
 }

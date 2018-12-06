@@ -164,11 +164,11 @@ export ALICLOUD_REGION="your-region-id"
 export TF_VAR_ecs_root_password="your-root-password"
 export TF_VAR_master_instance_cpu_count=4
 export TF_VAR_master_instance_ram_amount=8 # in GB
-export TF_VAR_master_instance_disk_size=20 # in GB
+export TF_VAR_master_instance_disk_size=40 # in GB
 export TF_VAR_worker_instance_count=2
 export TF_VAR_worker_instance_cpu_count=4
 export TF_VAR_worker_instance_ram_amount=32 # in GB
-export TF_VAR_worker_instance_disk_size=40 # in GB
+export TF_VAR_worker_instance_disk_size=80 # in GB
 
 # Create the resources in the cloud
 terraform apply
