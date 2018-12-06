@@ -34,7 +34,7 @@ resource "alicloud_vswitch" "rancher_vswitch" {
 
 // Security group
 resource "alicloud_security_group" "rancher_security_group" {
-  name = "rancher-demo-security-group"
+  name = "rancher-security-group"
   vpc_id = "${alicloud_vpc.rancher_vpc.id}"
 }
 resource "alicloud_security_group_rule" "accept_22_rule" {
