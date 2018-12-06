@@ -105,7 +105,7 @@ Note: [this document](https://elastisys.com/wp-content/uploads/2018/01/kubernete
 introduction about the master and worker node concepts in Kubernetes.
 
 [This document in Chinese](https://yq.aliyun.com/articles/599169) gives advices about which instance type to choose
-for master nodes; it also provides general tips about cluster administration in general. Concerning our sizing problem,
+for master nodes; it also provides general tips about cluster administration. Concerning our sizing problem,
 this article proposes the following configurations:
 * 1-5 worker nodes, master specification: 4 vCPUs and 8GB of RAM (2 vCPUs and 4GB of RAM is not recommended)
 * 6-20 worker nodes, master specification: 4 vCPUs and 16GB of RAM
@@ -120,11 +120,12 @@ of workers nodes. It also provides information about network driver, disk size s
 
 The first important advice this article provides is to prefer few large workers instead of many small ones:
 * A small number of large workers increases the chance of having interdependent containers running on the same
-  machine, which greatly reduce network transmission.
+  machine, which greatly reduces network transmission.
 * Large resources (such as network bandwidth or physical RAM) concentrated on few nodes allow better resource
   utilization. For example if two applications need 1GB of RAM, it is better to collocate them on one worker with 3GB
-  of physical RAM instead of distributing them on two workers with 1.5GB of physical RAM; in the first case the large
-  worker is able to accept a third application that would also need 1GB of RAM, whereas the two small workers cannot.
+  of physical RAM instead of distributing them on two workers with 1.5GB of physical RAM each; in the first case the
+  large worker is able to accept a third application that would also need 1GB of RAM, whereas the two small
+  workers cannot.
 * Pulling Docker images is more efficient on a smaller number of workers, because images are downloaded, stored on
   the local disk, and then re-used between containers.
 
@@ -134,13 +135,13 @@ fault tolerance.
 
 Let's consider the following example where a system needs a total of 160 vCPUs:
 * If the fault tolerance is 10%, we cannot lose more than 16 vCPUs, so a valid configuration is 10 workers
-  of 16 vCPUs each.
+  with 16 vCPUs.
 * If the fault tolerance is 20%, we cannot lose more than 32 vCPUs, so a valid configuration is 5 workers
-  of 32 vCPUs each.
+  with 32 vCPUs.
 
 About the amount of RAM for each worker, the document gives the following rule of thumb in case of applications that are
 relatively greedy in memory, such as Java applications: a good ratio is 8GB of RAM per vCPU, so if we choose an instance
-type with 4 vCPUs, then we need to take 32GB of RAM.
+type with 4 vCPUs, then we need to take about 32GB of RAM.
 
 ### Cluster creation
 Open a terminal on your computer and execute the following instructions:
