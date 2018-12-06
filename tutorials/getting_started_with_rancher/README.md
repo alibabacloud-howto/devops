@@ -98,14 +98,14 @@ manually to Rancher.
 
 ### Cluster sizing
 Before creating our cluster we need to size it correctly. Currently in Alibaba Cloud, a Kubernetes cluster must have
-exactly 3 master nodes, but the node instance types (number of CPUs and amount of RAM) and number of worker nodes are
-flexible.
+exactly 3 master nodes, but the node instance types (number of CPUs and amount of RAM) and the number of worker nodes
+are flexible.
 
 Note: [this document](https://elastisys.com/wp-content/uploads/2018/01/kubernetes-ha-setup.pdf?x83281) is a good
 introduction about the master and worker node concepts in Kubernetes.
 
 [This document in Chinese](https://yq.aliyun.com/articles/599169) gives advices about which instance type to choose
-for master nodes; it also provides general tips about cluster administration in general. Concerning our sizing question,
+for master nodes; it also provides general tips about cluster administration in general. Concerning our sizing problem,
 this article proposes the following configurations:
 * 1-5 worker nodes, master specification: 4 vCPUs and 8GB of RAM (2 vCPUs and 4GB of RAM is not recommended)
 * 6-20 worker nodes, master specification: 4 vCPUs and 16GB of RAM
@@ -114,6 +114,29 @@ this article proposes the following configurations:
 
 According to the same article, the disk size for each master node doesn't need to be large, as it mainly contains
 the OS (about 3GB), docker images, system and application logs, temporary data, ...etc.
+
+[This second document in Chinese](https://yq.aliyun.com/articles/602932) explains how to choose the number and the type
+of workers nodes. It also provides information about network driver, disk size selection and other management tasks.
+
+The first important advice this article provides is to prefer few large workers instead of many small ones:
+* A small number of large workers increases the chance of having interdependent containers running on the same
+  machine, which greatly reduce network transmission.
+* Large resources (such as network bandwidth or physical RAM) concentrated on few nodes allow better resource
+  utilization. For example if two applications need 1GB of RAM, it is better to collocate them on one worker with 3GB
+  of physical RAM instead of distributing them on two workers with 1.5GB of physical RAM; in the first case the large
+  worker is able to accept a third application that would also need 1GB of RAM, whereas the two small workers cannot.
+* Pulling Docker images is more efficient on a smaller number of workers, because images are downloaded, stored on
+  the local disk, and then re-used between containers.
+
+However a too small number of workers is not a good idea, because a system should continue to function even if a
+worker node is down. The exact number of workers depends on the total number of required vCPUs and on the acceptable
+fault tolerance.
+
+Let's consider the following example where a system needs a total of 160 vCPUs:
+* If the fault tolerance is 10%, we cannot lose more than 16 vCPUs, so a valid configuration is 10 workers
+  of 16 vCPUs each.
+* If the fault tolerance is 20%, we cannot lose more than 32 vCPUs, so a valid configuration is 5 workers
+  of 32 vCPUs each.
 
 ### Cluster creation
 Open a terminal on your computer and execute the following instructions:
