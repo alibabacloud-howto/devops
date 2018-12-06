@@ -66,14 +66,23 @@ Apply complete! Resources: 9 added, 0 changed, 0 destroyed.
 
 Outputs:
 
-rancher_eip_ip_address = 161.117.4.26
+rancher_eip_ip_address = 47.74.156.72
 ```
 Open a web browser tab and enter the URL corresponding to https://<rancher_eip_ip_address> 
-(e.g. https://161.117.4.26/). Your web browser will complain that the connection is unsecured (which is normal
-because we didn't configure any SSL/TLS certificate), just add an exception and continue browsing.
+(e.g. https://47.74.156.72/). Your web browser will complain that the connection is unsecured (which is normal
+because we didn't configure any SSL/TLS certificate); just add an exception and continue browsing.
+
+Note: if using an invalid certificate bothers you, please follow
+[this documentation](https://rancher.com/docs/rancher/v2.x/en/installation/single-node/#2-choose-an-ssl-option-and-install-rancher)
+to setup HTTPS properly.
 
 You should get a page like this:
 
 ![First Rancher screen](images/rancher_first_screen.png)
 
-Set an administrator password and click on the "Continue" button.
+Set an administrator password and click on the "Continue" button. The next step asks you to configure the server URL,
+just keep the default value and click on "Save URL".
+
+You should see the clusters page:
+
+![Rancher clusters](images/rancher_clusters.png)

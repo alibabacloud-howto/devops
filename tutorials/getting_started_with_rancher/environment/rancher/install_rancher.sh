@@ -18,4 +18,4 @@ apt-get -y update
 apt-get -y install apt-transport-https ca-certificates software-properties-common docker-ce
 
 # Install and run Rancher
-docker run -d --restart=unless-stopped -p 80:80 -p 443:443 rancher/rancher
+docker run -d --restart=unless-stopped -p 80:80 -p 443:443 rancher/rancher:latest
