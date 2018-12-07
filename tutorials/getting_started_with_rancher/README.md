@@ -10,6 +10,8 @@ layout: default
 3. [Kubernetes cluster](#kubernetes-cluster)
     1. [Cluster sizing](#cluster-sizing)
     2. [Cluster creation](#cluster-creation)
+4. [Importing Kubernetes Cluster](#importing-kubernetes-cluster)
+5. [Testing](#testing)
 
 ## Introduction
 [Rancher](https://rancher.com/) is a multi-cluster [Kubernetes](https://kubernetes.io) management platform. The goal
@@ -69,10 +71,10 @@ Apply complete! Resources: 9 added, 0 changed, 0 destroyed.
 
 Outputs:
 
-rancher_eip_ip_address = 47.74.156.72
+rancher_eip_ip_address = 161.117.4.26
 ```
 Open a web browser tab and enter the URL corresponding to https://<rancher_eip_ip_address> 
-(e.g. https://47.74.156.72/). Your web browser will complain that the connection is unsecured (which is normal
+(e.g. https://161.117.4.26/). Your web browser will complain that the connection is unsecured (which is normal
 because we didn't configure any SSL/TLS certificate); just make an exception and continue browsing.
 
 Note: if using an invalid certificate bothers you, please follow
@@ -161,7 +163,7 @@ export ALICLOUD_SECRET_KEY="your-accesskey-secret"
 export ALICLOUD_REGION="your-region-id"
 
 # Configure variables for the Terraform scripts
-export TF_VAR_ecs_root_password="your-root-password"
+export TF_VAR_ecs_root_password="YourR00tP@ssword"
 export TF_VAR_master_instance_cpu_count=4
 export TF_VAR_master_instance_ram_amount=8 # in GB
 export TF_VAR_master_instance_disk_size=40 # in GB
@@ -179,24 +181,71 @@ Apply complete! Resources: 16 added, 0 changed, 0 destroyed.
 
 Outputs:
 
-rancher_k8s_cluster_ip_address = 47.74.172.83
+rancher_k8s_cluster_ip_address = 161.117.96.245
 ```
+Note: don't worry if the operation takes some time. Creating a cluster typically takes about 15min.
 
 Let's configure [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) locally so that it can
 communicate with the new cluster. Execute the following commands in your terminal:
 ````bash
 mkdir $HOME/.kube
-scp root@47.74.172.83:/etc/kubernetes/kube.conf $HOME/.kube/config # The IP address is the one from `rancher_k8s_cluster_ip_address`
+scp root@161.117.96.245:/etc/kubernetes/kube.conf $HOME/.kube/config
+# Note 0: the IP address is the one from `rancher_k8s_cluster_ip_address`.
+# Note 1: the password is the one that was set in `TF_VAR_ecs_root_password`.
 
 # Check that it worked
 kubectl cluster-info
 ````
 If the configuration went well, the result of the last command should be something like:
 ```
-Kubernetes master is running at https://47.74.172.83:6443
-Heapster is running at https://47.74.172.83:6443/api/v1/namespaces/kube-system/services/heapster/proxy
-KubeDNS is running at https://47.74.172.83:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
-monitoring-influxdb is running at https://47.74.172.83:6443/api/v1/namespaces/kube-system/services/monitoring-influxdb/proxy
+Kubernetes master is running at https://161.117.96.245:6443
+Heapster is running at https://161.117.96.245:6443/api/v1/namespaces/kube-system/services/heapster/proxy
+KubeDNS is running at https://161.117.96.245:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+monitoring-influxdb is running at https://161.117.96.245:6443/api/v1/namespaces/kube-system/services/monitoring-influxdb/proxy
 
 To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 ```
+
+## Importing Kubernetes Cluster
+Now that we have our Kubernetes Cluster, let's import it into Rancher so that we can manage it from there.
+
+Open your web browser tab with Rancher (the page you got when you finished the
+[Rancher installation section](#rancher-installation)) and follow these instructions:
+* The current page must be the "Clusters" one. Click on the "Add Cluster" button;
+* Select "Import existing cluster";
+* Set the "Cluster Name" field to "alibabacloud-cluster";
+* Click on the "Create" button;
+
+You should get a page like this:
+
+![Cluster import instructions](images/rancher-import-cluster.png)
+
+Let's execute the last command, copy it and paste it in your terminal:
+```bash
+# Command from Rancher in order to import your cluster
+curl --insecure -sfL https://161.117.4.26/v3/import/nlz588gctmkkkpc8jsntrht8ff65gbp4d629smqzbcjpvxzltfdmph.yaml | kubectl apply -f -
+```
+This command should output the following logs:
+```
+namespace/cattle-system created
+serviceaccount/cattle created
+clusterrolebinding.rbac.authorization.k8s.io/cattle-admin-binding created
+secret/cattle-credentials-1d26caa created
+clusterrole.rbac.authorization.k8s.io/cattle-admin created
+deployment.extensions/cattle-cluster-agent created
+daemonset.extensions/cattle-node-agent created
+```
+
+Go back to the web browser tab and click on the "Done" button. You should now see your cluster:
+
+![Imported cluster](images/rancher-imported-cluster.png)
+
+On this page, click on the cluster name (alibabacloud-cluster). You should obtain a dashboard similar to this one:
+
+![Cluster dashboard](images/rancher-cluster-dashboard.png)
+
+## Testing
+
+TODO: Show how to execute the hello container with a load balancer.
+
+TODO: Show next read: https://rancher.com/docs/rancher/v2.x/en/k8s-in-rancher/
