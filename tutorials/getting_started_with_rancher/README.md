@@ -214,7 +214,7 @@ Open your web browser tab with Rancher (the page you got when you finished the
 * The current page must be the "Clusters" one. Click on the "Add Cluster" button;
 * Select "Import existing cluster";
 * Set the "Cluster Name" field to "alibabacloud-cluster";
-* Click on the "Create" button;
+* Click on the "Create" button.
 
 You should get a page like this:
 
@@ -245,7 +245,63 @@ On this page, click on the cluster name (alibabacloud-cluster). You should obtai
 ![Cluster dashboard](images/rancher-cluster-dashboard.png)
 
 ## Testing
+Let's play a bit with Rancher by deploying a small application. Please open your web browser tab with the cluster
+dashboard and execute the following actions:
+* In the top menu, select "Projects/Namespaces";
+* This page displays two projects: "Default" and "System". Click on "Project: Default";
+* The new page displays the workloads, but it is empty for the moment. Click on the "Deploy" button;
+* This page displays a workload form. Please set the fields like this:
+  * Name = hello-workload
+  * Docker Image = rancher/hello-world
+* Scroll down and click on "Show advanced options";
+* Expand "Labels & Annotations" and click on "Add Label";
+* Set the key "app" and the value "hello-app";
+* Click on the "Launch" button.
 
-TODO: Show how to execute the hello container with a load balancer.
+After few seconds you should see your workload named "hello-workload" with the "Active" status:
 
-TODO: Show next read: https://rancher.com/docs/rancher/v2.x/en/k8s-in-rancher/
+![Active workload](images/rancher-hello-workload-active.png)
+
+Let's [create a load balancer](https://rancher.com/docs/rancher/v2.x/en/k8s-in-rancher/load-balancers-and-ingress/)
+in order to expose this application to internet:
+* Click on the "Import YAML" button;
+* Copy the following content in the dark text area:
+  ```yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: hello-app-load-balancer
+    labels:
+      app: hello-app
+  spec:
+    type: LoadBalancer
+    ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 80
+    selector:
+      app: hello-app
+  ```
+  * Click on the "Import" button;
+  * Click on the "Load Balancing" tab.
+
+You should be able to see your load balancer:
+
+![Load balancer](images/rancher-load-balancer.png)
+
+In order to get the IP address of this load balancer, click on the menu button on the right of "hello-app-load-balancer"
+(with 3 vertical dots '...') and select "View/Edit YAML".
+You should see a large YAML file. Scroll down until you see the `status`:
+```yaml
+status:
+  loadBalancer:
+    ingress:
+    - ip: 161.117.96.212
+```
+Copy this IP address and paste it into the URL bar of a new web browser tab. You should be able to access to
+your application:
+
+![Hello application](images/hello-application.png)
+
+Congratulation if you managed to get this far! If you want to continue to learn about Kubernetes and Rancher,
+please read the [official documentation](https://rancher.com/docs/rancher/v2.x/en/k8s-in-rancher/).
