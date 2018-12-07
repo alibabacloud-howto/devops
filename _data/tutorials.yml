@@ -41,3 +41,9 @@
     The goal of this tutorial is to explain how to create a CI/CD pipeline in order to deploy an application
     in Kubernetes running on top of Alibaba Cloud.
   concepts: CI/CD, Git, GitLab, Docker, Kubernetes, Terraform, Java, Maven, Spring Boot
+- name: Getting started with Rancher
+  link: tutorials/getting_started_with_rancher/README.html
+  description: >-
+    Rancher is a multi-cluster Kubernetes management platform. This tutorial explains how to install Rancher and how
+    to integrate it with Alibaba Cloud.
+  concepts: Rancher, Docker, Kubernetes, Terraform
