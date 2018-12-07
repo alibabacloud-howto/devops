@@ -10,7 +10,7 @@ layout: default
 3. [Kubernetes cluster](#kubernetes-cluster)
     1. [Cluster sizing](#cluster-sizing)
     2. [Cluster creation](#cluster-creation)
-4. [Importing Kubernetes Cluster](#importing-kubernetes-cluster)
+4. [Importing the Kubernetes Cluster into Rancher](#importing-the-kubernetes-cluster-into-rancher)
 5. [Testing](#testing)
 
 ## Introduction
@@ -60,12 +60,12 @@ export ALICLOUD_SECRET_KEY="your-accesskey-secret"
 export ALICLOUD_REGION="your-region-id"
 
 # Configure variables for the Terraform scripts
-export TF_VAR_ecs_root_password="your-root-password"
+export TF_VAR_ecs_root_password="YourR00tP@ssword"
 
 # Create the resources in the cloud
 terraform apply
 ```
-The last command should ask you to confirm by entering "yes" and should end with similar logs:
+The last command should ask you to confirm by entering "yes" and should print logs that end like this:
 ```
 Apply complete! Resources: 9 added, 0 changed, 0 destroyed.
 
@@ -88,7 +88,7 @@ You should get a page like this:
 Set an administrator password and click on the "Continue" button. The next step asks you to configure the server URL,
 just keep the default value and click on "Save URL".
 
-You should see the clusters page:
+You should then be redirected to the clusters page:
 
 ![Rancher clusters](images/rancher_clusters.png)
 
@@ -109,7 +109,7 @@ introduction about the master and worker node concepts in Kubernetes.
 [This document in Chinese](https://yq.aliyun.com/articles/599169) gives advices about which instance type to choose
 for master nodes; it also provides general tips about cluster administration. Concerning our sizing problem,
 this article proposes the following configurations:
-* 1-5 worker nodes, master specification: 4 vCPUs and 8GB of RAM (2 vCPUs and 4GB of RAM is not recommended)
+* 1-5 worker nodes, master specification: 4 vCPUs and 8GB of RAM
 * 6-20 worker nodes, master specification: 4 vCPUs and 16GB of RAM
 * 21-100 worker nodes, master specification: 8 vCPUs and 32GB of RAM
 * 100-200 worker nodes, master specification: 16 vCPUs and 64GB of RAM
@@ -206,7 +206,7 @@ monitoring-influxdb is running at https://161.117.96.245:6443/api/v1/namespaces/
 To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 ```
 
-## Importing Kubernetes Cluster
+## Importing the Kubernetes Cluster into Rancher
 Now that we have our Kubernetes Cluster, let's import it into Rancher so that we can manage it from there.
 
 Open your web browser tab with Rancher (the page you got when you finished the
@@ -220,9 +220,9 @@ You should get a page like this:
 
 ![Cluster import instructions](images/rancher-import-cluster.png)
 
-Let's execute the last command, copy it and paste it in your terminal:
+Let's execute the last command; copy it and paste it in your terminal:
 ```bash
-# Command from Rancher in order to import your cluster
+# Command from Rancher in order to import the cluster
 curl --insecure -sfL https://161.117.4.26/v3/import/nlz588gctmkkkpc8jsntrht8ff65gbp4d629smqzbcjpvxzltfdmph.yaml | kubectl apply -f -
 ```
 This command should output the following logs:
@@ -250,7 +250,7 @@ dashboard and execute the following actions:
 * In the top menu, select "Projects/Namespaces";
 * This page displays two projects: "Default" and "System". Click on "Project: Default";
 * The new page displays the workloads, but it is empty for the moment. Click on the "Deploy" button;
-* This page displays a workload form. Please set the fields like this:
+* In this form, set the fields like this:
   * Name = hello-workload
   * Docker Image = rancher/hello-world
 * Scroll down and click on "Show advanced options";
