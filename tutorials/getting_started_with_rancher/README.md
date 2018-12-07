@@ -173,3 +173,30 @@ export TF_VAR_worker_instance_disk_size=80 # in GB
 # Create the resources in the cloud
 terraform apply
 ```
+The last command should ask you to confirm by entering "yes" and should end with similar logs:
+```
+Apply complete! Resources: 16 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+rancher_k8s_cluster_ip_address = 47.74.172.83
+```
+
+Let's configure [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) locally so that it can
+communicate with the new cluster. Execute the following commands in your terminal:
+````bash
+mkdir $HOME/.kube
+scp root@47.74.172.83:/etc/kubernetes/kube.conf $HOME/.kube/config # The IP address is the one from `rancher_k8s_cluster_ip_address`
+
+# Check that it worked
+kubectl cluster-info
+````
+If the configuration went well, the result of the last command should be something like:
+```
+Kubernetes master is running at https://47.74.172.83:6443
+Heapster is running at https://47.74.172.83:6443/api/v1/namespaces/kube-system/services/heapster/proxy
+KubeDNS is running at https://47.74.172.83:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+monitoring-influxdb is running at https://47.74.172.83:6443/api/v1/namespaces/kube-system/services/monitoring-influxdb/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+```
