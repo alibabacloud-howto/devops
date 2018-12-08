@@ -17,6 +17,23 @@ layout: default
         <p class="index_tutorial_concepts">
             {{ tutorial.concepts }}
         </p>
+        {% if tutorial.parts %}
+            <ul>
+            {% for part in tutorial.parts %}
+                <li>
+                    <a href="{{base}}/{{ part.link }}" class="index_tutorial_title">
+                        {{ part.name }}
+                    </a>
+                    <p class="index_tutorial_description">
+                        {{ part.description }}
+                    </p>
+                    <p class="index_tutorial_concepts">
+                        {{ part.concepts }}
+                    </p>
+                </li>
+            {% endfor %}
+            </ul>
+        {% endif %}
     </li>
 
     {% endfor %}

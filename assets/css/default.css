@@ -83,6 +83,10 @@ nav > a.current:before {
     content: "\BB";
 }
 
+nav > a.tutorial_part {
+    padding-left: 24px;
+}
+
 article {
     flex: 1;
     overflow-y: auto;

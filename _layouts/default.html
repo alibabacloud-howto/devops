@@ -20,14 +20,22 @@
 <main>
     <nav>
         <h1>Tutorials</h1>
-        <a href="{{base}}/index" {% if page.url== '/' %}class="current" {% endif %}>
+        <a href="{{base}}/index" {% if page.url == '/' %}class="current" {% endif %}>
         Home
         </a>
         {% for tutorial in site.data.tutorials %}
-        {% assign tutorialLink = '/' | append: tutorial.link %}
-        <a href="{{base}}/{{ tutorial.link }}" {% if page.url== tutorialLink %}class="current" {% endif %}>
-            {{ tutorial.name }}
-        </a>
+            {% assign tutorialLink = '/' | append: tutorial.link %}
+            <a href="{{base}}/{{ tutorial.link }}" {% if page.url== tutorialLink %}class="current" {% endif %}>
+                {{ tutorial.name }}
+            </a>
+            {% if tutorial.parts %}
+                {% for part in tutorial.parts %}
+                    {% assign pageLink = '/' | append: part.link %}
+                    <a href="{{base}}/{{ part.link }}" class="tutorial_part {% if page.url== pageLink %}current {% endif %}">
+                        {{ part.name }}
+                    </a>
+                {% endfor %}
+            {% endif %}
         {% endfor %}
     </nav>
     <article>{{ content }}</article>
