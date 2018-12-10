@@ -13,5 +13,5 @@
  */
 
 output "rancher_k8s_cluster_ip_address" {
-  value = "${alicloud_cs_kubernetes.rancher_k8s_cluster.connections.master_public_ip}"
+  value = "${lookup(alicloud_cs_kubernetes.rancher_k8s_cluster.connections, "master_public_ip", "unknown")}"
 }
