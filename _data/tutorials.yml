@@ -41,6 +41,12 @@
       This part is a direct extension to the part 4: it explains how to configure HTTPS with SSL/TLS certificates
       from "Let's Encrypt".
     concepts: HTTPS, SSL/TLS certificate, Let's Encrypt, OpenAPI, Python, Terraform, Packer
+  - name: Maintenance and evolution
+    link: tutorials/devops_for_small_to_medium_web_applications/part_06_maintenance_evolution.html
+    description: >-
+      This document deals with many important subjects that were not covered in previous parts in order to build a
+      professional web application on Alibaba Cloud.
+    concepts: Log management, monitoring and alarms, database schema evolution, user management, Decommissioning
 - name: Getting started with CI/CD and Kubernetes
   link: tutorials/getting_started_with_devops_with_kubernetes/README.html
   description: >-
