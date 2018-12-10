@@ -145,10 +145,9 @@ resource "alicloud_cs_kubernetes" "rancher_k8s_cluster" {
   master_disk_size = "${var.master_instance_disk_size}"
   worker_disk_size = "${var.worker_instance_disk_size}"
   worker_numbers = [
-    "${ceil(var.worker_instance_count / 2)}",
-    "${floor(var.worker_instance_count / 2)}",
-    "0"
-    // Note: The two last zones are the same.
+    "${floor(var.worker_instance_count / 3)}",
+    "${floor(var.worker_instance_count / 3)}",
+    "${var.worker_instance_count - 2 * floor(var.worker_instance_count / 3)}"
   ]
   password = "${var.ecs_root_password}"
   enable_ssh = true

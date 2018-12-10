@@ -146,6 +146,13 @@ relatively greedy in memory, such as Java applications: a good ratio is 8GB of R
 type with 4 vCPUs, then we need to take about 32GB of RAM.
 
 ### Cluster creation
+We will create a Kubernetes cluster in multiple availability zones. This decision increases the availability of the
+system, but it adds the following constraints:
+* Alibaba Cloud Container Service is designed to support either 1 or 3 availability zones;
+* In order to be compatible with most of the regions, we can only use 2 availability zones, so we will need to
+  configure our Kubernetes cluster to use twice the same availability zone;
+* The minimum number of worker nodes is 3.
+
 Open a terminal on your computer and execute the following instructions:
 ```bash
 # Go to the folder where you have downloaded this tutorial
@@ -167,7 +174,7 @@ export TF_VAR_ecs_root_password="YourR00tP@ssword"
 export TF_VAR_master_instance_cpu_count=4
 export TF_VAR_master_instance_ram_amount=8 # in GB
 export TF_VAR_master_instance_disk_size=40 # in GB
-export TF_VAR_worker_instance_count=2
+export TF_VAR_worker_instance_count=3 # Must be >= 3
 export TF_VAR_worker_instance_cpu_count=4
 export TF_VAR_worker_instance_ram_amount=32 # in GB
 export TF_VAR_worker_instance_disk_size=80 # in GB
