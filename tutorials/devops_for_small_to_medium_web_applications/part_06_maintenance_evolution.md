@@ -6,8 +6,9 @@ layout: default
 ## Summary
 0. [Introduction](#introduction)
 1. [Logs management](#logs-management)
-   1. [Log Service configuration](#log-service-configuration)
-   2. [Log search](#log-search)
+   1. [Log Service architecture](#log-service-configuration)
+   2. [Log Service configuration](#log-service-configuration)
+   3. [Log search](#log-search)
 2. Monitoring and alarms
 3. Database schema evolution
 4. User management
@@ -35,6 +36,34 @@ is enabled, because servers are automatically created and released.
 
 A solution to this problem is to use the [Log Service](https://www.alibabacloud.com/product/log-service): its role
 is to collect logs from servers and let administrators / developers to make search into them.
+
+### Log Service architecture
+Configuring Alibaba Cloud Log Service is a bit complex. The following diagram illustrates how it works:
+
+![Log collection](images/diagrams/log-collection.png)
+
+In this diagram we can see that in each ECS instance, an application is generating logs and sending them to 
+[Rsyslog](https://en.wikipedia.org/wiki/Rsyslog) (this is the case of our java application, thanks to the
+SystemD configuration file that specifies `StandardOutput=syslog` and `StandardError=syslog`).
+
+Rsyslog then must be configured to forward the logs to
+[Logtail](https://www.alibabacloud.com/help/doc-detail/28979.htm), a log collection agent similar to
+[LogStash](https://www.elastic.co/products/logstash), responsible for sending logs to the Log Service (note: you can
+read [this document](https://www.alibabacloud.com/help/doc-detail/44259.htm) if you are interested in a comparison
+between these tools).
+
+The Log Service is organized in [log projects](https://www.alibabacloud.com/help/doc-detail/48873.htm) that contains
+[log stores](https://www.alibabacloud.com/help/doc-detail/48874.htm). In our case we just need one log project and one
+log store. The Log Service provides endpoints (such as "http://logtail.ap-southeast-1-intranet.log.aliyuncs.com") in
+each region for Logtail, but both the log store and logtail must be configured:
+* Logtail needs a configuration to understand how to parse logs from Rsyslog (the fields / columns in each log line)
+  and how to send them to the Log Service (the endpoint, buffer size, ...)
+* A log store needs to be configured in order to know what are the logs that needs to be stored (e.g. from which data
+  source).
+
+The log store configuration uses the concept of a
+[machine group](https://www.alibabacloud.com/help/doc-detail/28966.htm) that refers to the ECS instances that
+send their logs via Logtail.
 
 ### Log Service configuration
 The first step is to create a [Log Project](https://www.alibabacloud.com/help/doc-detail/48873.htm) and a
