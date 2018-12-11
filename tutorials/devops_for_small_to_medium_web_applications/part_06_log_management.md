@@ -254,25 +254,79 @@ client.apply_config_to_machine_group(logProjectName, logtailConfigName, certmanM
 ```
 Save and quit by pressing CTRL+X.
 
+As you can see this script create or update the Logtail configuration and then link it to the machine groups.
+
 ### CI/CD pipeline update
+We need to update our pipeline definition file (.gitlab-ci.yml) in order to run our Python script
+"update_logtail_config.py". But before we need to create a script that install its dependencies:
+```bash
+# Create a script that install the dependencies for update_logtail_config.py
+nano gitlab-ci-scripts/deploy/install_python_packages.sh
+```
+Copy the following script into the editor:
+```bash
+#!/usr/bin/env bash
+#
+# Install PIP and aliyun-log-python-sdk.
+#
+
+echo "Installing Python packages..."
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get -y update
+apt-get -y install python3-pip
+
+pip3 install -U aliyun-log-python-sdk
+
+echo "Python packages installed with success."
+```
+Save and quit by pressing CTRL+X, then modify the file ".gitlab-ci.yml":
+```bash
+# Edit the pipeline definition file
+nano .gitlab-ci.yml
+```
+Modify the `deploy` accordingly:
+```yaml
+deploy:
+  # ...
+  script:
+    - "export ENV_NAME=$(./gitlab-ci-scripts/deploy/get_env_name_by_branch_name.sh $CI_COMMIT_REF_NAME)"
+    - "export SUB_DOMAIN_NAME=$(./gitlab-ci-scripts/deploy/get_sub_domain_name_by_branch_name.sh $CI_COMMIT_REF_NAME)"
+    - "export BUCKET_LOCAL_PATH=/mnt/oss_bucket"
+    - "./gitlab-ci-scripts/deploy/install_tools.sh"
+    - "./gitlab-ci-scripts/deploy/install_python_packages.sh"
+    - "./gitlab-ci-scripts/deploy/mount_ossfs.sh"
+    - "./gitlab-ci-scripts/deploy/build_basis_infra.sh"
+    - "./gitlab-ci-scripts/deploy/build_webapp_infra.sh"
+    - "./gitlab-ci-scripts/deploy/build_certman_infra.sh"
+    - "python3 ./gitlab-ci-scripts/deploy/update_logtail_config.py $ALICLOUD_ACCESS_KEY $ALICLOUD_SECRET_KEY $ALICLOUD_REGION $ENV_NAME"
+    - "umount $BUCKET_LOCAL_PATH"
+    - "sleep 10"
+  # ...
+```
+Save and exit with CTRL+X.
+
 The final step is to commit and push your changes to GitLab:
 ```bash
 # Check files to commit
 git status
 
 # Add the modified and new files
+git add .gitlab-ci.yml
 git add infrastructure/05_vpc_slb_eip_domain/main.tf
+git add infrastructure/10_webapp/10_image/app_image.json
+git add infrastructure/10_webapp/10_image/resources/rsyslog-logtail.conf
 git add infrastructure/10_webapp/15_ecs/main.tf
+git add infrastructure/15_certman/05_image/certman_image.json
+git add infrastructure/15_certman/05_image/resources/rsyslog-logtail.conf
 git add infrastructure/15_certman/10_ecs_slb_rule/main.tf
+git add gitlab-ci-scripts/deploy/install_python_packages.sh
+git add gitlab-ci-scripts/deploy/update_logtail_config.py
 
 # Commit and push to GitLab
-git commit -m "Collect logs into a log project."
+git commit -m "Collect logs with the Log Service."
 git push origin master
 ```
-
---- TODO ---
-TODO: add the modified Packer scripts
---- TODO ---
 
 Check your CI / CD pipeline on GitLab, in particularly the logs of the "deploy" stage and make sure there is no error.
 
