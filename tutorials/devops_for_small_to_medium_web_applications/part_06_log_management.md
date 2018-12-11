@@ -5,8 +5,12 @@ layout: default
 
 ## Summary
 0. [Introduction](#introduction)
-1. [Log Service architecture](#log-service-configuration)
-2. [Log Service configuration](#log-service-configuration)
+1. [Architecture](#architecture)
+2. [Infrastructure improvements](#infrastructure-improvements)
+   1. [Cloud resources](#cloud-resources)
+   2. [VM images](#vm-images)
+   3. [Logtail configuration on the log store](#logtail-configuration-on-the-log-store)
+   4. [CI/CD pipeline update](#ci/cd-pipeline-update)
 3. [Log search](#log-search)
 
 ## Introduction
@@ -21,7 +25,7 @@ is to collect logs from servers and let administrators / developers to make sear
 
 Note: please find the source code containing the changes of this part in the "sample-app/version5" folder.
 
-## Log Service architecture
+## Architecture
 Configuring Alibaba Cloud Log Service is a bit complex. The following diagram illustrates how it works:
 
 ![Log collection](images/diagrams/log-collection.png)
@@ -49,7 +53,8 @@ The log store configuration uses the concept of a
 [machine group](https://www.alibabacloud.com/help/doc-detail/28966.htm) that refers to the ECS instances that
 send their logs via Logtail.
 
-## Log Service configuration
+## Infrastructure improvements
+### Cloud resources
 The first step is to add a log project and a log store in our basis infrastructure. Open a terminal on your
 computer and type:
 ```bash
@@ -113,6 +118,7 @@ resource "alicloud_log_machine_group" "example" {
 ```
 Save the changes by pressing CTRL+X.
 
+### VM images
 The next step is to modify our Packer scripts in order to install Logtail and configure it:
 ```bash
 # Edit the application image script
@@ -183,7 +189,7 @@ nano infrastructure/15_certman/05_image/certman_image.json
 ```
 Add the same provisioner as above then save and quit with CTRL+X.
 
-
+### Logtail configuration on the log store
 
 --- TODO ---
 TODO: modify the Packer scripts to setup logtail:
@@ -217,6 +223,7 @@ sudo /etc/init.d/ilogtaild start
 Check if it is possible to configure a "Logtail Config" with Terraform, or at least with a Python script
 --- TODO ---
 
+### CI/CD pipeline update
 The final step is to commit and push your changes to GitLab:
 ```bash
 # Check files to commit
