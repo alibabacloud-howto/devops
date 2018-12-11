@@ -1,33 +1,15 @@
 ---
 layout: default
 ---
-# DevOps for small / medium web apps - Part 6 - Maintenance and evolution
+# DevOps for small / medium web apps - Part 6 - Log management
 
 ## Summary
 0. [Introduction](#introduction)
-1. [Logs management](#logs-management)
-   1. [Log Service architecture](#log-service-configuration)
-   2. [Log Service configuration](#log-service-configuration)
-   3. [Log search](#log-search)
-2. Monitoring and alarms
-3. Database schema evolution
-4. User management
-5. Decommissioning
+1. [Log Service architecture](#log-service-configuration)
+2. [Log Service configuration](#log-service-configuration)
+3. [Log search](#log-search)
 
 ## Introduction
-This document is the last "must-read" part of the tutorial in order to build a professional web application with
-Alibaba Cloud (the next parts are more optional as they will mainly deal with improvements).
-
-This part covers several important points:
-* Log collection and search;
-* System monitoring and alarms;
-* Database schema evolution
-* User management
-* Decommissioning
-
-Note: please find the source code containing the changes of this part in the "sample-app/version5" folder.
-
-## Logs management
 Working with application logs become more complex when the number of servers increase: for example when there is only
 one server, an administrator just needs to connect to this machine and read the "/var/logs" folder and execute
 commands such as `journalctl --unit=todo-list`. But when the number of servers increase, the same administrator
@@ -37,7 +19,9 @@ is enabled, because servers are automatically created and released.
 A solution to this problem is to use the [Log Service](https://www.alibabacloud.com/product/log-service): its role
 is to collect logs from servers and let administrators / developers to make search into them.
 
-### Log Service architecture
+Note: please find the source code containing the changes of this part in the "sample-app/version5" folder.
+
+## Log Service architecture
 Configuring Alibaba Cloud Log Service is a bit complex. The following diagram illustrates how it works:
 
 ![Log collection](images/diagrams/log-collection.png)
@@ -65,7 +49,7 @@ The log store configuration uses the concept of a
 [machine group](https://www.alibabacloud.com/help/doc-detail/28966.htm) that refers to the ECS instances that
 send their logs via Logtail.
 
-### Log Service configuration
+## Log Service configuration
 The first step is to add a log project and a log store in our basis infrastructure. Open a terminal on your
 computer and type:
 ```bash
@@ -254,7 +238,7 @@ TODO: add the modified Packer scripts
 
 Check your CI / CD pipeline on GitLab, in particularly the logs of the "deploy" stage and make sure there is no error.
 
-### Log search
+## Log search
 Let's check the logging configuration. First we need to generate logs with the application.
 One way to do that is to connect to the application (http://dev.my-sample-domain.xyz/) and create / delete tasks.
 
