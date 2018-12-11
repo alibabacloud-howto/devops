@@ -190,38 +190,69 @@ nano infrastructure/15_certman/05_image/certman_image.json
 Add the same provisioner as above then save and quit with CTRL+X.
 
 ### Logtail configuration on the log store
+Unfortunately the Terraform provider for Alibaba Cloud doesn't support Logtail configuration on the log store side.
+However we can still manage it automatically thanks to the
+[OpenAPI services](https://www.alibabacloud.com/help/doc-detail/29042.htm).
 
---- TODO ---
-TODO: modify the Packer scripts to setup logtail:
-wget http://logtail-release-ap-southeast-1.oss-ap-southeast-1.aliyuncs.com/linux64/logtail.sh -O logtail.sh
-chmod 755 logtail.sh
-./logtail.sh install auto
+There are several ways to call this API, one solution is to use the
+[Python SDK](https://www.alibabacloud.com/help/doc-detail/29077.htm) to create a script that will be called by Gitlab:
+```bash
+# Create the Python script that will update the Logtail configuration on the log store side
+nano gitlab-ci-scripts/deploy/update_logtail_config.py
+```
+Copy the following content into this file:
+```python
+#!/usr/bin/python3
 
-Modify the configuration of logtail:
-"streamlog_formats":[{"version": "0.1", "fields": []}]
+import sys
+from aliyun.log.logclient import LogClient
+from aliyun.log.logexception import LogException
+from aliyun.log.logtail_config_detail import SyslogConfigDetail
 
+# Read the arguments
+accessKeyId = sys.argv[1]
+accessKeySecret = sys.argv[2]
+regionId = sys.argv[3]
+environment = sys.argv[4]
+print("Update the Logtail configuration on the log store (environment = " + environment +
+      ", region = " + regionId + ")")
 
-Modify the conf /etc/rsyslog.conf (would be better in /etc/rsyslog.d/afile):
-$WorkDirectory /var/spool/rsyslog # where to place spool files
-$ActionQueueFileName fwdRule1 # unique name prefix for spool files
-$ActionQueueMaxDiskSpace 1g # 1gb space limit (use as much as possible)
-$ActionQueueSaveOnShutdown on # save messages to disk on shutdown
-$ActionQueueType LinkedList # run asynchronously
-$ActionResumeRetryCount -1 # infinite retries if host is down
-# Defines the fields of log data
-$template ALI_LOG_FMT,"0.1 sys_tag %timegenerated:::date-unixtimestamp% %fromhost-ip% %hostname% %pri-text% %protocol-version% %app-name% %procid% %msgid% %msg:::drop-last-lf%\n"
-*.* @@127.0.0.1:11111;ALI_LOG_FMT
+endpoint = regionId + ".log.aliyuncs.com"
+logProjectName = "sample-app-log-project-" + environment
+logStoreName = "sample-app-log-store-" + environment
+logtailConfigName = "sample-app-logtail-config-" + environment
+appMachineGroupName = "sample-app-log-machine-group-" + environment
+certmanMachineGroupName = "sample-app-certman-log-machine-group-" + environment
 
+# Load the existing Logtail configuration
+print("Loading existing Logtail configuration (endpoint = " + endpoint +
+      ", logProjectName = " + logProjectName + ", logtailConfigName = " + logtailConfigName + ")...")
 
-Check if some ports have to be opened (security group)
+client = LogClient(endpoint, accessKeyId, accessKeySecret)
+existingConfig = None
+try:
+    response = client.get_logtail_config(logProjectName, logtailConfigName)
+    existingConfig = response.logtail_config
+    print("Existing logtail configuration found: ", existingConfig.to_json())
+except LogException:
+    print("No existing logtail configuration found.")
 
+# Create or update the logtail configuration
+configDetail = SyslogConfigDetail(logstoreName=logStoreName, configName=logtailConfigName, tag="sys_tag")
+if existingConfig is None:
+    print("Create the logtail configuration:", configDetail.to_json())
+    client.create_logtail_config(logProjectName, configDetail)
+else:
+    print("Update the logtail configuration:", configDetail.to_json())
+    client.update_logtail_config(logProjectName, configDetail)
 
-Check how to enable logtail with systemd:
-sudo /etc/init.d/ilogtaild stop
-sudo /etc/init.d/ilogtaild start
-
-Check if it is possible to configure a "Logtail Config" with Terraform, or at least with a Python script
---- TODO ---
+# Apply the configuration to machine groups
+print("Apply the logtail configuration to the machine group", appMachineGroupName)
+client.apply_config_to_machine_group(logProjectName, logtailConfigName, appMachineGroupName)
+print("Apply the logtail configuration to the machine group", certmanMachineGroupName)
+client.apply_config_to_machine_group(logProjectName, logtailConfigName, certmanMachineGroupName)
+```
+Save and quit by pressing CTRL+X.
 
 ### CI/CD pipeline update
 The final step is to commit and push your changes to GitLab:
