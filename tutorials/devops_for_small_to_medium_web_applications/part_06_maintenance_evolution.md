@@ -66,14 +66,13 @@ The log store configuration uses the concept of a
 send their logs via Logtail.
 
 ### Log Service configuration
-The first step is to create a [Log Project](https://www.alibabacloud.com/help/doc-detail/48873.htm) and a
-[Log Store](https://www.alibabacloud.com/help/doc-detail/48874.htm) for our application by modifying our basis
-infrastructure script. Open a terminal on your computer and type:
+The first step is to add a log project and a log store in our basis infrastructure. Open a terminal on your
+computer and type:
 ```bash
 # Go to the project folder
 cd ~/projects/todolist
 
-# Edit the Terraform script of the basis part
+# Edit the basis infrastructure definition
 nano infrastructure/05_vpc_slb_eip_domain/main.tf
 ```
 Add the following code at the end of the file:
@@ -90,10 +89,10 @@ resource "alicloud_log_store" "app_log_store" {
 ```
 Save the changes by pressing CTRL+X.
 
-The second step is to create a [machine group](https://www.alibabacloud.com/help/doc-detail/28966.htm) for the
-ECS instances that host our application. Enter the following commands in your terminal:
+We then need to create two machine groups: one for our application, one for our certificate manager.
+Enter the following commands in your terminal:
 ```bash
-# Edit the 
+# Edit the application infrastructure definition
 nano infrastructure/10_webapp/15_ecs/main.tf
 ```
 Add the following code at the end of the file:
@@ -112,10 +111,9 @@ Save the changes by pressing CTRL+X.
 
 Note: as you can see, we use the private IP addresses to include ECS machines into the group.
 
-The third step is to create a machine group for the certificate manager instance. Open the corresponding script
-with your terminal:
+Continue adding the machine group for the certificate manager:
 ```bash
-# Edit the 
+# Edit the certificate manager infrastructure definition
 nano infrastructure/15_certman/10_ecs_slb_rule/main.tf
 ```
 Add the following code at the end of the file:
@@ -131,6 +129,78 @@ resource "alicloud_log_machine_group" "example" {
 ```
 Save the changes by pressing CTRL+X.
 
+The next step is to modify our Packer scripts in order to install Logtail and configure it:
+```bash
+# Edit the application image script
+nano infrastructure/10_webapp/10_image/app_image.json
+```
+Add the following provisioner at the end of the `provisioners` array:
+```json
+{
+  "type": "shell",
+  "inline": [
+    "export REGION=\"{{user `region_id`}}\"",
+    "wget \"http://logtail-release-${REGION}.oss-${REGION}.aliyuncs.com/linux64/logtail.sh\" -O logtail.sh",
+    "chmod 755 logtail.sh",
+    "./logtail.sh install auto",
+    "export STREAMLOG_FORMATS=\"[{\\\"version\\\": \\\"0.1\\\", \\\"fields\\\": []}]\"",
+    "export ESCAPED_STREAMLOG_FORMATS=$(echo $STREAMLOG_FORMATS | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+    "sed -i \"s/\\(\\\"streamlog_open\\\" : \\).*\\$/\\1true,/\" /usr/local/ilogtail/ilogtail_config.json",
+    "sed -i \"s/\\(\\\"streamlog_formats\\\":\\).*\\$/\\1${ESCAPED_STREAMLOG_FORMATS},/\" /usr/local/ilogtail/ilogtail_config.json"
+  ]
+}
+```
+Save and exit with CTRL+X. Then do the same with the certificate manager image:
+```bash
+# Edit the certificate manager image script
+nano infrastructure/15_certman/05_image/certman_image.json
+```
+Add the same provisioner as above, then save and exit with CTRL+X.
+
+We haven't finished with Packer scripts yet as we still need to configure Rsyslog to forward logs to Logtail.
+```bash
+# Create the Rsyslog configuration script
+nano infrastructure/10_webapp/10_image/resources/rsyslog-logtail.conf
+```
+Enter the following content into this file:
+```
+$ActionQueueFileName fwdRule1 # unique name prefix for spool files
+$ActionQueueMaxDiskSpace 1g # 1gb space limit (use as much as possible)
+$ActionQueueSaveOnShutdown on # save messages to disk on shutdown
+$ActionQueueType LinkedList # run asynchronously
+$ActionResumeRetryCount -1 # infinite retries if host is down
+
+# Defines the fields of log data
+$template ALI_LOG_FMT,"0.1 sys_tag %timegenerated:::date-unixtimestamp% %fromhost-ip% %hostname% %pri-text% %protocol-version% %app-name% %procid% %msgid% %msg:::drop-last-lf%\n"
+*.* @@127.0.0.1:11111;ALI_LOG_FMT
+```
+Save and exit by pressing CTRL+X. Copy the same file for the certificate manager:
+```bash
+# Copy the Rsyslog configuration script
+cp infrastructure/10_webapp/10_image/resources/rsyslog-logtail.conf infrastructure/15_certman/05_image/resources/rsyslog-logtail.conf
+```
+Add a provisioner into the application Packer script in order to upload this configuration file:
+```bash
+# Edit the application image script
+nano infrastructure/10_webapp/10_image/app_image.json
+```
+Add the following provisioner:
+```json
+{
+  "type": "file",
+  "source": "resources/rsyslog-logtail.conf",
+  "destination": "/etc/rsyslog.d/80-logtail.conf"
+}
+```
+Save and exit with CTRL+X. Edit in a similar way the certificate manager image script:
+```bash
+# Edit the certificate manager image script
+nano infrastructure/15_certman/05_image/certman_image.json
+```
+Add the same provisioner as above then save and quit with CTRL+X.
+
+
+
 --- TODO ---
 TODO: modify the Packer scripts to setup logtail:
 wget http://logtail-release-ap-southeast-1.oss-ap-southeast-1.aliyuncs.com/linux64/logtail.sh -O logtail.sh
@@ -138,10 +208,7 @@ chmod 755 logtail.sh
 ./logtail.sh install auto
 
 Modify the configuration of logtail:
-"streamlog_formats":
-[
-    {"version": "0.1", "fields": []},
-]
+"streamlog_formats":[{"version": "0.1", "fields": []}]
 
 
 Modify the conf /etc/rsyslog.conf (would be better in /etc/rsyslog.d/afile):
