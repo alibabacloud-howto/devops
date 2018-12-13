@@ -278,17 +278,17 @@ in order to expose this application to internet:
 apiVersion: v1
 kind: Service
 metadata:
-name: hello-app-load-balancer
-labels:
-  app: hello-app
+  name: hello-app-load-balancer
+  labels:
+    app: hello-app
 spec:
-type: LoadBalancer
-ports:
-- port: 80
-  protocol: TCP
-  targetPort: 80
-selector:
-  app: hello-app
+  type: LoadBalancer
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: hello-app
 ```
 
 * Click on the "Import" button;
