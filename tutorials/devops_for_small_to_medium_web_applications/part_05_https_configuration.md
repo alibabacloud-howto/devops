@@ -477,7 +477,8 @@ Edit the content with the following changes:
     {
       "type": "shell",
       "inline": [
-        "mkdir -p /etc/certificate-updater/"
+        "mkdir -p /etc/certificate-updater/",
+        "mkdir -p /opt/certificate-updater/"
       ]
     },
     {
@@ -488,7 +489,7 @@ Edit the content with the following changes:
     {
       "type": "file",
       "source": "resources/certificate-updater.py",
-      "destination": "/opt/certificate-updater.py"
+      "destination": "/opt/certificate-updater/certificate-updater.py"
     },
     {
       "type": "file",
@@ -515,10 +516,12 @@ Edit the content with the following changes:
         "add-apt-repository -y ppa:certbot/certbot",
         "apt-get -y update",
         "apt-get -y install python-certbot-nginx",
-        "pip install aliyun-python-sdk-core --upgrade",
-        "pip install aliyun-python-sdk-slb --upgrade",
-        "pip install pyopenssl --upgrade",
-        "pip install pytz --upgrade",
+        "cd /opt/certificate-updater",
+        "pip install pipenv --upgrade",
+        "pipenv install aliyun-python-sdk-core",
+        "pipenv install aliyun-python-sdk-slb",
+        "pipenv install pyopenssl",
+        "pipenv install pytz",
         "export ESCAPED_ACCESS_KEY=$(echo $ALICLOUD_ACCESS_KEY | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
         "export ESCAPED_SECRET_KEY=$(echo $ALICLOUD_SECRET_KEY | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
         "export ESCAPED_REGION=$(echo $ALICLOUD_REGION | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
@@ -553,6 +556,14 @@ We are also uploading many new files:
 
 The last provisioner installs certbot and libraries for our Python script, updates the Python script configuration,
 and configures Systemd to start OSSFS when the machine boots.
+
+Note: you might have remarked that we install Python packages with
+[pipenv](https://pipenv.readthedocs.io/en/latest/), but not with [pip](https://pypi.org/project/pip/). The reason
+behind this decision is that we need to create a separate
+[virtual environment](https://docs.python.org/3/tutorial/venv.html) for our script as a workaround: there are other
+Python scripts injected in each ECS instance called "cloud-init". These cloud-init scripts set things such as the
+hostname, password, ...etc. Unfortunately the packages needed for our Python script are incompatible with the ones
+needed by the cloud-init scripts, so we need to separate environments.
 
 Save with CTRL+X, then create the Python script configuration file:
 ```bash
@@ -811,10 +822,11 @@ After=ossfs.service
 [Service]
 Type=simple
 RemainAfterExit=yes
-ExecStart=/usr/bin/python2.7 /opt/certificate-updater.py
+ExecStart=/usr/local/bin/pipenv run python2 /opt/certificate-updater/certificate-updater.py
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=certificate-updater
+WorkingDirectory=/opt/certificate-updater
 
 [Install]
 WantedBy=multi-user.target
@@ -835,7 +847,7 @@ Write the following content:
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-15 */12 * * * root /usr/bin/python2.7 /opt/certificate-updater.py 2>&1 | /usr/bin/logger -t certificate-updater
+15 */12 * * * root cd /opt/certificate-updater && /usr/local/bin/pipenv run python2 /opt/certificate-updater/certificate-updater.py 2>&1 | /usr/bin/logger -t certificate-updater
 ```
 This file configures Cron to run our Python script every day at 12h15 AM / PM. The console output is sent to syslog
 with the [logger command](http://man7.org/linux/man-pages/man1/logger.1.html).

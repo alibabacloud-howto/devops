@@ -90,7 +90,8 @@
     {
       "type": "shell",
       "inline": [
-        "mkdir -p /etc/certificate-updater/"
+        "mkdir -p /etc/certificate-updater/",
+        "mkdir -p /opt/certificate-updater/"
       ]
     },
     {
@@ -101,7 +102,7 @@
     {
       "type": "file",
       "source": "resources/certificate-updater.py",
-      "destination": "/opt/certificate-updater.py"
+      "destination": "/opt/certificate-updater/certificate-updater.py"
     },
     {
       "type": "file",
@@ -128,10 +129,12 @@
         "add-apt-repository -y ppa:certbot/certbot",
         "apt-get -y update",
         "apt-get -y install python-certbot-nginx",
-        "pip install aliyun-python-sdk-core --upgrade",
-        "pip install aliyun-python-sdk-slb --upgrade",
-        "pip install pyopenssl --upgrade",
-        "pip install pytz --upgrade",
+        "cd /opt/certificate-updater",
+        "pip install pipenv --upgrade",
+        "pipenv install aliyun-python-sdk-core",
+        "pipenv install aliyun-python-sdk-slb",
+        "pipenv install pyopenssl",
+        "pipenv install pytz",
         "export ESCAPED_ACCESS_KEY=$(echo $ALICLOUD_ACCESS_KEY | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
         "export ESCAPED_SECRET_KEY=$(echo $ALICLOUD_SECRET_KEY | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
         "export ESCAPED_REGION=$(echo $ALICLOUD_REGION | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
