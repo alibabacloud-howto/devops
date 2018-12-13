@@ -76,6 +76,20 @@ resource "alicloud_log_store" "app_log_store" {
   name = "sample-app-log-store-${var.env}"
 }
 ```
+We should also add an ingress security group rule in order to open the port 11111, used by ilogtail. Add the
+following block under the `accept_8080_rule`:
+```hcl-terraform
+resource "alicloud_security_group_rule" "accept_11111_rule" {
+  type = "ingress"
+  ip_protocol = "tcp"
+  nic_type = "intranet"
+  policy = "accept"
+  port_range = "11111/11111"
+  priority = 1
+  security_group_id = "${alicloud_security_group.app_security_group.id}"
+  cidr_ip = "0.0.0.0/0"
+}
+```
 Save the changes by pressing CTRL+X.
 
 We then need to create two machine groups: one for our application, one for our certificate manager.
@@ -313,6 +327,8 @@ git status
 
 # Add the modified and new files
 git add .gitlab-ci.yml
+git add gitlab-ci-scripts/deploy/install_python_packages.sh
+git add gitlab-ci-scripts/deploy/update_logtail_config.py
 git add infrastructure/05_vpc_slb_eip_domain/main.tf
 git add infrastructure/10_webapp/10_image/app_image.json
 git add infrastructure/10_webapp/10_image/resources/rsyslog-logtail.conf
@@ -320,8 +336,6 @@ git add infrastructure/10_webapp/15_ecs/main.tf
 git add infrastructure/15_certman/05_image/certman_image.json
 git add infrastructure/15_certman/05_image/resources/rsyslog-logtail.conf
 git add infrastructure/15_certman/10_ecs_slb_rule/main.tf
-git add gitlab-ci-scripts/deploy/install_python_packages.sh
-git add gitlab-ci-scripts/deploy/update_logtail_config.py
 
 # Commit and push to GitLab
 git commit -m "Collect logs with the Log Service."
@@ -329,6 +343,34 @@ git push origin master
 ```
 
 Check your CI / CD pipeline on GitLab, in particularly the logs of the "deploy" stage and make sure there is no error.
+
+Check that the Log Service is correctly configured:
+* Go the the [Log Service console](https://sls.console.aliyun.com/);
+* You should see the log project "sample-app-log-project-dev", click on it;
+* You should be able to see the log store "sample-app-log-store-dev";
+* In the left menu, click on "Log Machine Group";
+* You should see two groups "sample-app-certman-log-machine-group-dev" and "sample-app-log-machine-group-dev";
+* Click on the "Status" link next to "sample-app-certman-log-machine-group-dev": a popup should open with one IP address
+  like "192.168.0.x" and with a heartbeat column containing "OK" (this value means that Logtail is running
+  on the ECS instance).
+* Close the popup and do the same with the "sample-app-log-machine-group-dev" group: click on the "Status" link
+  and check that there are two IP addresses (one like "192.168.1.x" and another one like "192.168.0.x") with
+  "OK" heartbeats.
+* Close the popup and click on the "Logtail Config" left menu item; you should see one configuration
+  "sample-app-logtail-config-dev" with "syslog" as data source. Click on this configuration;
+* The new page should display a form with the "sys_tag" value for the "Tag Settings" field. This value must be exactly
+  the same as the one in the Rsyslog configuration file. Click on the "next" button: the two machines groups
+  "sample-app-certman-log-machine-group-dev" and "sample-app-log-machine-group-dev" must be displayed and checked;
+  click on the "Cancel" button to close this wizard;
+* Click on the "Logstores" item in the left menu.
+* Click on the "Preview" link next to the "sample-app-log-store-dev" log store;
+* A new web browser tab should open and show collected logs like this:
+
+![Log store preview](images/logstore-preview.png)
+
+Note: if there is no log, try to switch to the "Shard: 1" and click on the "Preview" button. You can generate logs by
+yourself by opening your web application (http://dev.my-sample-domain.xyz/) and by creating and deleting tasks. Sometime
+it may be necessary to wait for few minutes for the logs to appear.
 
 ## Log search
 Let's check the logging configuration. First we need to generate logs with the application.
