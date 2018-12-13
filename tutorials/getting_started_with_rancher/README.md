@@ -273,6 +273,7 @@ Let's [create a load balancer](https://rancher.com/docs/rancher/v2.x/en/k8s-in-r
 in order to expose this application to internet:
 * Click on the "Import YAML" button;
 * Copy the following content in the dark text area:
+
 ```yaml
 apiVersion: v1
 kind: Service
@@ -289,6 +290,7 @@ ports:
 selector:
   app: hello-app
 ```
+
 * Click on the "Import" button;
 * Click on the "Load Balancing" tab.
 
