@@ -73,7 +73,7 @@ Outputs:
 
 rancher_eip_ip_address = 161.117.4.26
 ```
-Open a web browser tab and enter the URL corresponding to https://<rancher_eip_ip_address> 
+Open a web browser tab and enter the URL corresponding to https://rancher_eip_ip_address 
 (e.g. https://161.117.4.26/). Your web browser will complain that the connection is unsecured (which is normal
 because we didn't configure any SSL/TLS certificate); just make an exception and continue browsing.
 
