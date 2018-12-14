@@ -8,8 +8,8 @@ layout: default
 1. [Architecture](#architecture)
 2. [Infrastructure improvements](#infrastructure-improvements)
    1. [Cloud resources](#cloud-resources)
-   2. [VM images](#vm-images)
-   3. [Logtail configuration on the log store](#logtail-configuration-on-the-log-store)
+   2. [Logtail configuration on the log project](#logtail-configuration-on-the-log-project)
+   3. [VM images](#vm-images)
    4. [CI/CD pipeline update](#ci/cd-pipeline-update)
 3. [Log search](#log-search)
 
@@ -21,9 +21,10 @@ must connect to each machine in order to find the information he's looking for. 
 is enabled, because servers are automatically created and released.
 
 A solution to this problem is to use the [Log Service](https://www.alibabacloud.com/product/log-service): its role
-is to collect logs from servers and let administrators / developers to make search into them.
+is to collect logs from servers and let administrators / developers to search in them.
 
-Note: please find the source code containing the changes of this part in the "sample-app/version5" folder.
+Note: you can find the source code containing the modifications described in this part in the folder
+"sample-app/version5".
 
 ## Architecture
 Configuring Alibaba Cloud Log Service is a bit complex. The following diagram illustrates how it works:
@@ -34,7 +35,7 @@ In this diagram we can see that in each ECS instance, an application is generati
 [Rsyslog](https://en.wikipedia.org/wiki/Rsyslog) (this is the case of our java application, thanks to the
 SystemD configuration file that specifies `StandardOutput=syslog` and `StandardError=syslog`).
 
-Rsyslog then must be configured to forward the logs to
+Rsyslog must then be configured to forward the logs to
 [Logtail](https://www.alibabacloud.com/help/doc-detail/28979.htm), a log collection agent similar to
 [LogStash](https://www.elastic.co/products/logstash), responsible for sending logs to the Log Service (note: you can
 read [this document](https://www.alibabacloud.com/help/doc-detail/44259.htm) if you are interested in a comparison
@@ -42,21 +43,20 @@ between these tools).
 
 The Log Service is organized in [log projects](https://www.alibabacloud.com/help/doc-detail/48873.htm) that contains
 [log stores](https://www.alibabacloud.com/help/doc-detail/48874.htm). In our case we just need one log project and one
-log store. The Log Service provides endpoints (such as "http://logtail.ap-southeast-1-intranet.log.aliyuncs.com") in
-each region for Logtail, but both the log store and logtail must be configured:
+log store. The Log Service provides endpoints in each region for Logtail
+(such as "http://logtail.ap-southeast-1-intranet.log.aliyuncs.com").
+
+Both the log project and Logtail must be configured:
 * Logtail needs a configuration to understand how to parse logs from Rsyslog (the fields / columns in each log line)
   and how to send them to the Log Service (the endpoint, buffer size, ...)
-* A log store needs to be configured in order to know what are the logs that needs to be stored (e.g. from which data
-  source).
-
-The log store configuration uses the concept of a
-[machine group](https://www.alibabacloud.com/help/doc-detail/28966.htm) that refers to the ECS instances that
-send their logs via Logtail.
+* The log project needs to be configured in order to know what are the logs that needs to be stored (e.g. from which
+  data source). This configuration refers to the ECS instances via
+  [machine groups](https://www.alibabacloud.com/help/doc-detail/28966.htm).
 
 ## Infrastructure improvements
 ### Cloud resources
-The first step is to add a log project and a log store in our basis infrastructure. Open a terminal on your
-computer and type:
+The first step is to add a log project, a log store and a log machine in our basis infrastructure. Open a terminal on
+your computer and type:
 ```bash
 # Go to the project folder
 cd ~/projects/todolist
@@ -66,7 +66,7 @@ nano infrastructure/05_vpc_slb_eip_domain/main.tf
 ```
 Add the following code at the end of the file:
 ```hcl-terraform
-// Log project and store
+// Log project, store and machine group
 resource "alicloud_log_project" "app_log_project" {
   name = "sample-app-log-project-${var.env}"
   description = "Sample web application log project (${var.env} environment)."
@@ -75,8 +75,16 @@ resource "alicloud_log_store" "app_log_store" {
   project = "${alicloud_log_project.app_log_project.name}"
   name = "sample-app-log-store-${var.env}"
 }
+resource "alicloud_log_machine_group" "app_log_machine_group" {
+  project = "sample-app-log-project-${var.env}"
+  name = "sample-app-log-machine-group-${var.env}"
+  identify_type = "userdefined"
+  identify_list = [
+    "logtail-id-${var.env}"
+  ]
+}
 ```
-We should also add an ingress security group rule in order to open the port 11111, used by ilogtail. Add the
+We should also add an ingress security group rule in order to open the port 11111 (used by Logtail). Add the
 following block under the `accept_8080_rule`:
 ```hcl-terraform
 resource "alicloud_security_group_rule" "accept_11111_rule" {
@@ -92,45 +100,83 @@ resource "alicloud_security_group_rule" "accept_11111_rule" {
 ```
 Save the changes by pressing CTRL+X.
 
-We then need to create two machine groups: one for our application, one for our certificate manager.
-Enter the following commands in your terminal:
-```bash
-# Edit the application infrastructure definition
-nano infrastructure/10_webapp/15_ecs/main.tf
-```
-Add the following code at the end of the file:
-```hcl-terraform
-// Log machine group
-resource "alicloud_log_machine_group" "example" {
-  project = "sample-app-log-project-${var.env}"
-  name = "sample-app-log-machine-group-${var.env}"
-  identify_list = [
-    "${alicloud_instance.app_ecs_zone_0.private_ip}",
-    "${alicloud_instance.app_ecs_zone_1.private_ip}"
-  ]
-}
-```
-Save the changes by pressing CTRL+X.
+Note: if you check the
+[Terraform documentation](https://www.terraform.io/docs/providers/alicloud/r/log_machine_group.html) about
+`alicloud_log_machine_group`, you can see that the `identify_type` can take 2 values: "ip" and "userdefined". The "ip"
+one is less flexible and a bit problematic for our CI / CD pipeline, as it requires us to create the ECS
+instances first (to get the private IP addresses), then to configure the log machine group and finally to complete the
+Log Service configuration. This is problematic because the ECS instances would start without a complete
+logging configuration (at that time the CI / CD pipeline is not finished yet and the Log Service is not ready),
+so the logtail application running on the ECS instances will fail to initialize.
 
-Note: as you can see, we use the private IP addresses to include ECS machines into the group.
+For more information about user-defined identity, please read
+[this documentation](https://www.alibabacloud.com/help/doc-detail/28983.htm).
 
-Continue adding the machine group for the certificate manager:
+### Logtail configuration on the log project
+There are two Logtail configurations: one on the ECS instance side, one on the log project side. This section deals
+with the log project side.
+
+Unfortunately the Terraform provider for Alibaba Cloud doesn't support Logtail configuration on the log project side,
+so we will manage it automatically with the [OpenAPI services](https://www.alibabacloud.com/help/doc-detail/29042.htm).
+
+There are several ways to call this API, one solution is to use the
+[Python SDK](https://www.alibabacloud.com/help/doc-detail/29077.htm) to create a script that will be called by GitLab:
 ```bash
-# Edit the certificate manager infrastructure definition
-nano infrastructure/15_certman/10_ecs_slb_rule/main.tf
+# Create the Python script that will update the Logtail configuration on the log project side
+nano gitlab-ci-scripts/deploy/update_logtail_config.py
 ```
-Add the following code at the end of the file:
-```hcl-terraform
-// Log machine group
-resource "alicloud_log_machine_group" "example" {
-  project = "sample-app-log-project-${var.env}"
-  name = "sample-app-certman-log-machine-group-${var.env}"
-  identify_list = [
-    "${alicloud_instance.certman_ecs.private_ip}"
-  ]
-}
+Copy the following content into this file:
+```python
+#!/usr/bin/python3
+
+import sys
+from aliyun.log.logclient import LogClient
+from aliyun.log.logexception import LogException
+from aliyun.log.logtail_config_detail import SyslogConfigDetail
+
+# Read the arguments
+accessKeyId = sys.argv[1]
+accessKeySecret = sys.argv[2]
+regionId = sys.argv[3]
+environment = sys.argv[4]
+print("Update the Logtail configuration on the log project (environment = " + environment +
+      ", region = " + regionId + ")")
+
+endpoint = regionId + ".log.aliyuncs.com"
+logProjectName = "sample-app-log-project-" + environment
+logStoreName = "sample-app-log-store-" + environment
+logtailConfigName = "sample-app-logtail-config-" + environment
+logMachineGroupName = "sample-app-log-machine-group-" + environment
+
+# Load the existing Logtail configuration
+print("Loading existing Logtail configuration (endpoint = " + endpoint +
+      ", logProjectName = " + logProjectName + ", logtailConfigName = " + logtailConfigName + ")...")
+
+client = LogClient(endpoint, accessKeyId, accessKeySecret)
+existingConfig = None
+try:
+    response = client.get_logtail_config(logProjectName, logtailConfigName)
+    existingConfig = response.logtail_config
+    print("Existing logtail configuration found: ", existingConfig.to_json())
+except LogException:
+    print("No existing logtail configuration found.")
+
+# Create or update the logtail configuration
+configDetail = SyslogConfigDetail(logstoreName=logStoreName, configName=logtailConfigName, tag="sys_tag")
+if existingConfig is None:
+    print("Create the logtail configuration:", configDetail.to_json())
+    client.create_logtail_config(logProjectName, configDetail)
+else:
+    print("Update the logtail configuration:", configDetail.to_json())
+    client.update_logtail_config(logProjectName, configDetail)
+
+# Apply the configuration to the machine group
+print("Apply the logtail configuration to the machine group", logMachineGroupName)
+client.apply_config_to_machine_group(logProjectName, logtailConfigName, logMachineGroupName)
 ```
-Save the changes by pressing CTRL+X.
+Save and quit by pressing CTRL+X.
+
+As you can see this script creates or updates the Logtail configuration and then links it to the machine group.
 
 ### VM images
 The next step is to modify our Packer scripts in order to install Logtail and configure it:
@@ -144,13 +190,17 @@ Add the following provisioner at the end of the `provisioners` array:
   "type": "shell",
   "inline": [
     "export REGION=\"{{user `region_id`}}\"",
+    "export ENVIRONMENT=\"{{user `environment`}}\"",
+    "mkdir -p /etc/ilogtail",
+    "echo \"logtail-id-${ENVIRONMENT}\" > /etc/ilogtail/user_defined_id",
     "wget \"http://logtail-release-${REGION}.oss-${REGION}.aliyuncs.com/linux64/logtail.sh\" -O logtail.sh",
     "chmod 755 logtail.sh",
     "./logtail.sh install auto",
-    "export STREAMLOG_FORMATS=\"[{\\\"version\\\": \\\"0.1\\\", \\\"fields\\\": []}]\"",
-    "export ESCAPED_STREAMLOG_FORMATS=$(echo $STREAMLOG_FORMATS | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
+    "export STREAMLOG_FORMATS='[{\"version\": \"0.1\", \"fields\": []}]'",
     "sed -i \"s/\\(\\\"streamlog_open\\\" : \\).*\\$/\\1true,/\" /usr/local/ilogtail/ilogtail_config.json",
-    "sed -i \"s/\\(\\\"streamlog_formats\\\":\\).*\\$/\\1${ESCAPED_STREAMLOG_FORMATS},/\" /usr/local/ilogtail/ilogtail_config.json"
+    "sed -i \"s/\\(\\\"streamlog_formats\\\":\\).*\\$/\\1${STREAMLOG_FORMATS},/\" /usr/local/ilogtail/ilogtail_config.json",
+    "/etc/init.d/ilogtaild stop",
+    "rm /usr/local/ilogtail/app_info.json"
   ]
 }
 ```
@@ -161,7 +211,20 @@ nano infrastructure/15_certman/05_image/certman_image.json
 ```
 Add the same provisioner as above, then save and exit with CTRL+X.
 
-We haven't finished with Packer scripts yet as we still need to configure Rsyslog to forward logs to Logtail.
+As you can see, this provisioner executes the following actions:
+* Create the file "/etc/ilogtail/user_defined_id" and put "logtail-id-${ENVIRONMENT}" inside. This is a necessary step
+  in order to inform Logtail that it is running inside an ECS instance that belongs to the machine group
+  "sample-app-log-machine-group-${var.env}" (created via Terraform).
+* Download and install Logtail (also called ilogtail sometime). Note that this installation script automatically starts
+  Logtail on the machine.
+* Modify the the properties `streamlog_open` and `streamlog_formats` in the Logtail configuration file
+  "/usr/local/ilogtail/ilogtail_config.json". Note that Logtail has configuration files in two locations:
+  "/etc/ilogtail/" and "/usr/local/ilogtail/".
+* Stop Logtail and remove the configuration file "/usr/local/ilogtail/app_info.json", as it contains the hostname and
+  private ip address of the ECS instance used by Packer to create the VM image. Logtail will automatically re-create
+  this file when the VM image is used to start our "real" ECS instances.
+
+We haven't finished with Packer scripts yet as we still need to configure Rsyslog to forward logs to Logtail:
 ```bash
 # Create the Rsyslog configuration script
 nano infrastructure/10_webapp/10_image/resources/rsyslog-logtail.conf
@@ -203,78 +266,11 @@ nano infrastructure/15_certman/05_image/certman_image.json
 ```
 Add the same provisioner as above then save and quit with CTRL+X.
 
-### Logtail configuration on the log store
-Unfortunately the Terraform provider for Alibaba Cloud doesn't support Logtail configuration on the log store side.
-However we can still manage it automatically thanks to the
-[OpenAPI services](https://www.alibabacloud.com/help/doc-detail/29042.htm).
-
-There are several ways to call this API, one solution is to use the
-[Python SDK](https://www.alibabacloud.com/help/doc-detail/29077.htm) to create a script that will be called by Gitlab:
-```bash
-# Create the Python script that will update the Logtail configuration on the log store side
-nano gitlab-ci-scripts/deploy/update_logtail_config.py
-```
-Copy the following content into this file:
-```python
-#!/usr/bin/python3
-
-import sys
-from aliyun.log.logclient import LogClient
-from aliyun.log.logexception import LogException
-from aliyun.log.logtail_config_detail import SyslogConfigDetail
-
-# Read the arguments
-accessKeyId = sys.argv[1]
-accessKeySecret = sys.argv[2]
-regionId = sys.argv[3]
-environment = sys.argv[4]
-print("Update the Logtail configuration on the log store (environment = " + environment +
-      ", region = " + regionId + ")")
-
-endpoint = regionId + ".log.aliyuncs.com"
-logProjectName = "sample-app-log-project-" + environment
-logStoreName = "sample-app-log-store-" + environment
-logtailConfigName = "sample-app-logtail-config-" + environment
-appMachineGroupName = "sample-app-log-machine-group-" + environment
-certmanMachineGroupName = "sample-app-certman-log-machine-group-" + environment
-
-# Load the existing Logtail configuration
-print("Loading existing Logtail configuration (endpoint = " + endpoint +
-      ", logProjectName = " + logProjectName + ", logtailConfigName = " + logtailConfigName + ")...")
-
-client = LogClient(endpoint, accessKeyId, accessKeySecret)
-existingConfig = None
-try:
-    response = client.get_logtail_config(logProjectName, logtailConfigName)
-    existingConfig = response.logtail_config
-    print("Existing logtail configuration found: ", existingConfig.to_json())
-except LogException:
-    print("No existing logtail configuration found.")
-
-# Create or update the logtail configuration
-configDetail = SyslogConfigDetail(logstoreName=logStoreName, configName=logtailConfigName, tag="sys_tag")
-if existingConfig is None:
-    print("Create the logtail configuration:", configDetail.to_json())
-    client.create_logtail_config(logProjectName, configDetail)
-else:
-    print("Update the logtail configuration:", configDetail.to_json())
-    client.update_logtail_config(logProjectName, configDetail)
-
-# Apply the configuration to machine groups
-print("Apply the logtail configuration to the machine group", appMachineGroupName)
-client.apply_config_to_machine_group(logProjectName, logtailConfigName, appMachineGroupName)
-print("Apply the logtail configuration to the machine group", certmanMachineGroupName)
-client.apply_config_to_machine_group(logProjectName, logtailConfigName, certmanMachineGroupName)
-```
-Save and quit by pressing CTRL+X.
-
-As you can see this script create or update the Logtail configuration and then link it to the machine groups.
-
 ### CI/CD pipeline update
 We need to update our pipeline definition file (.gitlab-ci.yml) in order to run our Python script
-"update_logtail_config.py". But before we need to create a script that install its dependencies:
+"update_logtail_config.py". But before we need to create a script that installs its dependencies:
 ```bash
-# Create a script that install the dependencies for update_logtail_config.py
+# Create a script that installs the dependencies for update_logtail_config.py
 nano gitlab-ci-scripts/deploy/install_python_packages.sh
 ```
 Copy the following script into the editor:
@@ -294,12 +290,12 @@ pip3 install -U aliyun-log-python-sdk
 
 echo "Python packages installed with success."
 ```
-Save and quit by pressing CTRL+X, then modify the file ".gitlab-ci.yml":
+Save and quit by pressing CTRL+X; then modify the file ".gitlab-ci.yml":
 ```bash
 # Edit the pipeline definition file
 nano .gitlab-ci.yml
 ```
-Modify the `deploy` accordingly:
+Modify the `deploy` block accordingly:
 ```yaml
 deploy:
   # ...
@@ -311,14 +307,18 @@ deploy:
     - "./gitlab-ci-scripts/deploy/install_python_packages.sh"
     - "./gitlab-ci-scripts/deploy/mount_ossfs.sh"
     - "./gitlab-ci-scripts/deploy/build_basis_infra.sh"
+    - "python3 ./gitlab-ci-scripts/deploy/update_logtail_config.py $ALICLOUD_ACCESS_KEY $ALICLOUD_SECRET_KEY $ALICLOUD_REGION $ENV_NAME"
     - "./gitlab-ci-scripts/deploy/build_webapp_infra.sh"
     - "./gitlab-ci-scripts/deploy/build_certman_infra.sh"
-    - "python3 ./gitlab-ci-scripts/deploy/update_logtail_config.py $ALICLOUD_ACCESS_KEY $ALICLOUD_SECRET_KEY $ALICLOUD_REGION $ENV_NAME"
     - "umount $BUCKET_LOCAL_PATH"
     - "sleep 10"
   # ...
 ```
 Save and exit with CTRL+X.
+
+As you can see we have added two commands:
+* ./gitlab-ci-scripts/deploy/install_python_packages.sh
+* python3 ./gitlab-ci-scripts/deploy/update_logtail_config.py $ALICLOUD_ACCESS_KEY $ALICLOUD_SECRET_KEY $ALICLOUD_REGION $ENV_NAME
 
 The final step is to commit and push your changes to GitLab:
 ```bash
@@ -332,10 +332,8 @@ git add gitlab-ci-scripts/deploy/update_logtail_config.py
 git add infrastructure/05_vpc_slb_eip_domain/main.tf
 git add infrastructure/10_webapp/10_image/app_image.json
 git add infrastructure/10_webapp/10_image/resources/rsyslog-logtail.conf
-git add infrastructure/10_webapp/15_ecs/main.tf
 git add infrastructure/15_certman/05_image/certman_image.json
 git add infrastructure/15_certman/05_image/resources/rsyslog-logtail.conf
-git add infrastructure/15_certman/10_ecs_slb_rule/main.tf
 
 # Commit and push to GitLab
 git commit -m "Collect logs with the Log Service."
@@ -349,18 +347,14 @@ Check that the Log Service is correctly configured:
 * You should see the log project "sample-app-log-project-dev", click on it;
 * You should be able to see the log store "sample-app-log-store-dev";
 * In the left menu, click on "Log Machine Group";
-* You should see two groups "sample-app-certman-log-machine-group-dev" and "sample-app-log-machine-group-dev";
-* Click on the "Status" link next to "sample-app-certman-log-machine-group-dev": a popup should open with one IP address
-  like "192.168.0.x" and with a heartbeat column containing "OK" (this value means that Logtail is running
-  on the ECS instance).
-* Close the popup and do the same with the "sample-app-log-machine-group-dev" group: click on the "Status" link
-  and check that there are two IP addresses (one like "192.168.1.x" and another one like "192.168.0.x") with
-  "OK" heartbeats.
+* You should see the group "sample-app-log-machine-group-dev"; click on the "Status" link on the right;
+* A popup should open with three IP addresses: one like "192.168.0.x" and two like "192.168.1.x". The heartbeat column
+  must contain "OK" (this value means that Logtail is running on the ECS instance).
 * Close the popup and click on the "Logtail Config" left menu item; you should see one configuration
   "sample-app-logtail-config-dev" with "syslog" as data source. Click on this configuration;
-* The new page should display a form with the "sys_tag" value for the "Tag Settings" field. This value must be exactly
-  the same as the one in the Rsyslog configuration file. Click on the "next" button: the two machines groups
-  "sample-app-certman-log-machine-group-dev" and "sample-app-log-machine-group-dev" must be displayed and checked;
+* The new page should display a form with a field "Tag Settings" containing "sys_tag". This value must be exactly
+  the same as the one in the Rsyslog configuration file. Click on the "next" button: the machines group
+  "sample-app-log-machine-group-dev" must be displayed and checked;
   click on the "Cancel" button to close this wizard;
 * Click on the "Logstores" item in the left menu.
 * Click on the "Preview" link next to the "sample-app-log-store-dev" log store;
