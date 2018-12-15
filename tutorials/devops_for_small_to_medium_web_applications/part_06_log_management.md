@@ -200,7 +200,9 @@ Add the following provisioner at the end of the `provisioners` array:
     "sed -i \"s/\\(\\\"streamlog_open\\\" : \\).*\\$/\\1true,/\" /usr/local/ilogtail/ilogtail_config.json",
     "sed -i \"s/\\(\\\"streamlog_formats\\\":\\).*\\$/\\1${STREAMLOG_FORMATS},/\" /usr/local/ilogtail/ilogtail_config.json",
     "/etc/init.d/ilogtaild stop",
-    "rm /usr/local/ilogtail/app_info.json"
+    "rm /usr/local/ilogtail/app_info.json",
+    "rm /etc/init.d/ilogtaild",
+    "systemctl enable logtail"
   ]
 }
 ```
@@ -223,8 +225,55 @@ As you can see, this provisioner executes the following actions:
 * Stop Logtail and remove the configuration file "/usr/local/ilogtail/app_info.json", as it contains the hostname and
   private ip address of the ECS instance used by Packer to create the VM image. Logtail will automatically re-create
   this file when the VM image is used to start our "real" ECS instances.
+* Remove the Logtail default startup script (/etc/init.d/ilogtaild) and replace it by our own (we will create it in
+  a moment). We need to do that because we need to control when Logtail starts: when our ECS instance starts for the
+  first time, [cloud-init](https://www.alibabacloud.com/help/doc-detail/57803.htm) scripts reconfigure the system
+  by setting attributes such as the hostname. We need to make sure that Logtail starts AFTER cloud-init, that's why
+  we create our own [SystemD](https://www.freedesktop.org/wiki/Software/systemd/) script.
 
-We haven't finished with Packer scripts yet as we still need to configure Rsyslog to forward logs to Logtail:
+Let's create this SystemD script now:
+```bash
+# Create our own SystemD script for Logtail
+nano infrastructure/10_webapp/10_image/resources/logtail.service
+```
+Copy the following content into this file:
+```
+[Unit]
+Description=logtail
+After=syslog.target
+After=network.target
+After=cloud-config.service
+After=cloud-final.service
+After=cloud-init-local.service
+After=cloud-init.service
+After=cloudmonitor.service
+After=cloud-config.target
+
+[Service]
+Type=simple
+RemainAfterExit=yes
+ExecStartPre=/bin/sleep 5
+ExecStart=/usr/local/ilogtail/ilogtail
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=logtail
+WorkingDirectory=/usr/local/ilogtail
+
+[Install]
+WantedBy=multi-user.target
+```
+Save and quit by pressing CTRL+X.
+
+As you can see at the beginning of this script, we start Logtail after the cloud-init scripts. We even wait 5 seconds
+with `ExecStartPre=/bin/sleep 5` to make sure the cloud-init scripts have completed their tasks.
+
+Copy this file for the certificate manager machine:
+```bash
+# Copy the Logtail startup script
+cp infrastructure/10_webapp/10_image/resources/logtail.service infrastructure/15_certman/05_image/resources/logtail.service
+```
+
+We also need to configure Rsyslog to forward logs to Logtail:
 ```bash
 # Create the Rsyslog configuration script
 nano infrastructure/10_webapp/10_image/resources/rsyslog-logtail.conf
@@ -251,12 +300,19 @@ Add a provisioner into the application Packer script in order to upload this con
 # Edit the application image script
 nano infrastructure/10_webapp/10_image/app_image.json
 ```
-Add the following provisioner:
+Add the following provisioners BEFORE the shell one we have just created above:
 ```json
 {
   "type": "file",
   "source": "resources/rsyslog-logtail.conf",
   "destination": "/etc/rsyslog.d/80-logtail.conf"
+}
+```
+```json
+{
+  "type": "file",
+  "source": "resources/logtail.service",
+  "destination": "/etc/systemd/system/logtail.service"
 }
 ```
 Save and exit with CTRL+X. Edit in a similar way the certificate manager image script:
@@ -367,6 +423,14 @@ yourself by opening your web application (http://dev.my-sample-domain.xyz/) and 
 it may be necessary to wait for few minutes for the logs to appear.
 
 ## Log search
-Let's check the logging configuration. First we need to generate logs with the application.
-One way to do that is to connect to the application (http://dev.my-sample-domain.xyz/) and create / delete tasks.
+Let's check the logging configuration:
+* Open our web application (http://dev.my-sample-domain.xyz/) and create 4 tasks (Task 1, Task 2, Task 3 and Task 4),
+  then delete them one by one.
+* Go the the [Log Service console](https://sls.console.aliyun.com/);
+* Click on the log project "sample-app-log-project-dev";
+* Click on "Search" next to the "sample-app-log-store-dev" log store;
+* The new page should display logs with a search bar on top; enter app-name=todo-list in this bar and click on
+  "Search & Analysis";
+* The "Raw Logs" panel should now only contains the logs of our application:
 
+TODO: show an image
