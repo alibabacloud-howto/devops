@@ -387,8 +387,10 @@ git add gitlab-ci-scripts/deploy/install_python_packages.sh
 git add gitlab-ci-scripts/deploy/update_logtail_config.py
 git add infrastructure/05_vpc_slb_eip_domain/main.tf
 git add infrastructure/10_webapp/10_image/app_image.json
+git add infrastructure/10_webapp/10_image/resources/logtail.service
 git add infrastructure/10_webapp/10_image/resources/rsyslog-logtail.conf
 git add infrastructure/15_certman/05_image/certman_image.json
+git add infrastructure/15_certman/05_image/resources/logtail.service
 git add infrastructure/15_certman/05_image/resources/rsyslog-logtail.conf
 
 # Commit and push to GitLab
@@ -405,7 +407,10 @@ Check that the Log Service is correctly configured:
 * In the left menu, click on "Log Machine Group";
 * You should see the group "sample-app-log-machine-group-dev"; click on the "Status" link on the right;
 * A popup should open with three IP addresses: one like "192.168.0.x" and two like "192.168.1.x". The heartbeat column
-  must contain "OK" (this value means that Logtail is running on the ECS instance).
+  must contain "OK" (this value means that Logtail is running on the ECS instance):
+
+![Log machine group status](images/log-machine-group-status.png)
+
 * Close the popup and click on the "Logtail Config" left menu item; you should see one configuration
   "sample-app-logtail-config-dev" with "syslog" as data source. Click on this configuration;
 * The new page should display a form with a field "Tag Settings" containing "sys_tag". This value must be exactly
@@ -424,7 +429,7 @@ it may be necessary to wait for few minutes for the logs to appear.
 
 ## Log search
 Let's check the logging configuration:
-* Open our web application (http://dev.my-sample-domain.xyz/) and create 4 tasks (Task 1, Task 2, Task 3 and Task 4),
+* Open your web application (http://dev.my-sample-domain.xyz/) and create 4 tasks (Task 1, Task 2, Task 3 and Task 4),
   then delete them one by one.
 * Go the the [Log Service console](https://sls.console.aliyun.com/);
 * Click on the log project "sample-app-log-project-dev";
@@ -433,4 +438,50 @@ Let's check the logging configuration:
   "Search & Analysis";
 * The "Raw Logs" panel should now only contains the logs of our application:
 
-TODO: show an image
+![Log search example](images/log-search-example.png)
+
+We can see the following messages:
+* Time: 12-17 10:06:43
+  * hostname: sample-app-ecs-zone-1-dev
+  * msg: 2018-12-17 10:06:44.111 INFO 705 --- \[nio-8080-exec-4] c.a.i.t.controllers.TaskController : Delete the
+    task with the UUID: 4d3d5eb5-e21b-42f5-9681-fec5b52bf266
+* Time: 12-17 10:06:42
+  * hostname: sample-app-ecs-zone-0-dev
+  * msg: 2018-12-17 10:06:43.584 INFO 702 --- \[nio-8080-exec-5] c.a.i.t.controllers.TaskController : Delete the
+    task with the UUID: 960562e1-9806-4df5-95fd-1403b8d8e186
+* Time: 12-17 10:06:41
+  * hostname: sample-app-ecs-zone-1-dev
+  * msg: 2018-12-17 10:06:42.966 INFO 705 --- \[nio-8080-exec-9] c.a.i.t.controllers.TaskController : Delete the
+    task with the UUID: 8145a65b-c1d4-4a24-b1b9-2af3a53b324c
+* Time: 12-17 10:06:41
+  * hostname: sample-app-ecs-zone-0-dev
+  * msg: 2018-12-17 10:06:42.464 INFO 702 --- \[nio-8080-exec-1] c.a.i.t.controllers.TaskController : Delete the
+    task with the UUID: efa997bf-f101-429a-bc01-badd69241d5a
+* Time: 12-17 10:06:39
+  * hostname: sample-app-ecs-zone-1-dev
+  * msg: 2018-12-17 10:06:40.802 INFO 705 --- \[nio-8080-exec-5] c.a.i.t.controllers.TaskController : Create a new
+    task: Task{uuid='4d3d5eb5-e21b-42f5-9681-fec5b52bf266', description='Task 4'}
+* Time: 12-17 10:06:35
+  * hostname: sample-app-ecs-zone-0-dev
+  * msg: 2018-12-17 10:06:36.970 INFO 702 --- \[nio-8080-exec-3] c.a.i.t.controllers.TaskController : Create a new
+    task: Task{uuid='960562e1-9806-4df5-95fd-1403b8d8e186', description='Task 3'}
+* Time: 12-17 10:06:32
+  * hostname: sample-app-ecs-zone-1-dev
+  * msg: 2018-12-17 10:06:33.274 INFO 705 --- \[nio-8080-exec-4] c.a.i.t.controllers.TaskController : Create a new
+    task: Task{uuid='8145a65b-c1d4-4a24-b1b9-2af3a53b324c', description='Task 2'}
+* Time: 12-17 10:06:25
+  * hostname: sample-app-ecs-zone-0-dev
+  * msg: 2018-12-17 10:06:26.112 INFO 702 --- \[nio-8080-exec-8] c.a.i.t.controllers.TaskController : Create a new
+    task: Task{uuid='efa997bf-f101-429a-bc01-badd69241d5a', description='Task 1'}
+
+It's interesting to see how the load balancer distributes HTTP requests to each ECS instance. This is
+due to the fact that we configured its [scheduling algorithm](https://www.alibabacloud.com/help/doc-detail/55193.htm)
+to [weighted round robin](https://en.wikipedia.org/wiki/Weighted_round_robin) and set the same weight for all ECS
+instances.
+
+We can also remark that each row contains contents organized by fields (app-name, hostname, msg, ...). We can make
+search easier and faster by adding our own fields (for example by splitting a message "2018-12-17 10:06:44.111 INFO
+705 --- \[nio-8080-exec-4] c.a.i.t.controllers.TaskController : Delete the task with the UUID:
+4d3d5eb5-e21b-42f5-9681-fec5b52bf266" into datetime, level, process-id, thread-name, logger-name and message). For that
+we can modify Rsyslog and Logtail configurations or directly modify our Java application to use the
+[aliyun-log-log4j-appender](https://github.com/aliyun/aliyun-log-log4j-appender).
