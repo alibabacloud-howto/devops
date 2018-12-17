@@ -157,6 +157,35 @@
         "chmod +x /opt/certificate-updater/certificate-updater.sh",
         "systemctl enable certificate-updater.service"
       ]
+    },
+    {
+      "type": "file",
+      "source": "resources/rsyslog-logtail.conf",
+      "destination": "/etc/rsyslog.d/80-logtail.conf"
+    },
+    {
+      "type": "file",
+      "source": "resources/logtail.service",
+      "destination": "/etc/systemd/system/logtail.service"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "export REGION=\"{{user `region_id`}}\"",
+        "export ENVIRONMENT=\"{{user `environment`}}\"",
+        "mkdir -p /etc/ilogtail",
+        "echo \"logtail-id-${ENVIRONMENT}\" > /etc/ilogtail/user_defined_id",
+        "wget \"http://logtail-release-${REGION}.oss-${REGION}.aliyuncs.com/linux64/logtail.sh\" -O logtail.sh",
+        "chmod 755 logtail.sh",
+        "./logtail.sh install auto",
+        "export STREAMLOG_FORMATS='[{\"version\": \"0.1\", \"fields\": []}]'",
+        "sed -i \"s/\\(\\\"streamlog_open\\\" : \\).*\\$/\\1true,/\" /usr/local/ilogtail/ilogtail_config.json",
+        "sed -i \"s/\\(\\\"streamlog_formats\\\":\\).*\\$/\\1${STREAMLOG_FORMATS},/\" /usr/local/ilogtail/ilogtail_config.json",
+        "/etc/init.d/ilogtaild stop",
+        "rm /usr/local/ilogtail/app_info.json",
+        "rm /etc/init.d/ilogtaild",
+        "systemctl enable logtail"
+      ]
     }
   ]
 }

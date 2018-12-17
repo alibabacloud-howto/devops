@@ -354,7 +354,7 @@ This script executes the following actions:
 Save and quit by pressing CTRL+X, then create the Nginx configuration file:
 ```bash
 # Create the Nginx configuration file
-nano infrastructure/15_certman/05_image/resources/nginx-conf-certman
+nano resources/nginx-conf-certman
 ```
 Enter the following content into the new file:
 ```
@@ -477,7 +477,8 @@ Edit the content with the following changes:
     {
       "type": "shell",
       "inline": [
-        "mkdir -p /etc/certificate-updater/"
+        "mkdir -p /etc/certificate-updater/",
+        "mkdir -p /opt/certificate-updater/"
       ]
     },
     {
@@ -488,7 +489,12 @@ Edit the content with the following changes:
     {
       "type": "file",
       "source": "resources/certificate-updater.py",
-      "destination": "/opt/certificate-updater.py"
+      "destination": "/opt/certificate-updater/certificate-updater.py"
+    },
+    {
+      "type": "file",
+      "source": "resources/certificate-manager.sh",
+      "destination": "/opt/certificate-updater/certificate-updater.sh"
     },
     {
       "type": "file",
@@ -515,10 +521,12 @@ Edit the content with the following changes:
         "add-apt-repository -y ppa:certbot/certbot",
         "apt-get -y update",
         "apt-get -y install python-certbot-nginx",
-        "pip install aliyun-python-sdk-core --upgrade",
-        "pip install aliyun-python-sdk-slb --upgrade",
-        "pip install pyopenssl --upgrade",
-        "pip install pytz --upgrade",
+        "cd /opt/certificate-updater",
+        "pip install pipenv --upgrade",
+        "pipenv install aliyun-python-sdk-core",
+        "pipenv install aliyun-python-sdk-slb",
+        "pipenv install pyopenssl",
+        "pipenv install pytz",
         "export ESCAPED_ACCESS_KEY=$(echo $ALICLOUD_ACCESS_KEY | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
         "export ESCAPED_SECRET_KEY=$(echo $ALICLOUD_SECRET_KEY | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
         "export ESCAPED_REGION=$(echo $ALICLOUD_REGION | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
@@ -533,6 +541,7 @@ Edit the content with the following changes:
         "sed -i \"s/%domain%/${ESCAPED_DOMAIN}/\" /etc/certificate-updater/config.ini",
         "sed -i \"s/%sub-domain%/${ESCAPED_SUB_DOMAIN}/\" /etc/certificate-updater/config.ini",
         "sed -i \"s/%email-address%/${ESCAPED_EMAIL_ADDRESS}/\" /etc/certificate-updater/config.ini",
+        "chmod +x /opt/certificate-updater/certificate-updater.sh",
         "systemctl enable certificate-updater.service"
       ]
     }
@@ -546,6 +555,7 @@ expire.
 We are also uploading many new files:
 * certificate-updater.py - a script written in Python that checks whether the current certificate it up to date,
   renews it if necessary, and changes the SLB configuration;
+* certificate-updater.sh - a Bash script that sets the correct working directory and then calls certificate-updater.py;
 * certificate-updater-config.ini - the configuration file for "certificate-updater.py";
 * certificate-updater.service - a SystemD script to execute "certificate-updater.py" when the VM starts;
 * certificate-updater-cron - a [Cron](https://en.wikipedia.org/wiki/Cron) script to run
@@ -553,6 +563,14 @@ We are also uploading many new files:
 
 The last provisioner installs certbot and libraries for our Python script, updates the Python script configuration,
 and configures Systemd to start OSSFS when the machine boots.
+
+Note: you might have remarked that we install Python packages with
+[pipenv](https://pipenv.readthedocs.io/en/latest/), but not with [pip](https://pypi.org/project/pip/). The reason
+behind this decision is that we need to create a separate
+[virtual environment](https://docs.python.org/3/tutorial/venv.html) for our script as a workaround: there are other
+Python scripts injected in each ECS instance called "cloud-init". These cloud-init scripts set things such as the
+hostname, password, ...etc. Unfortunately the packages needed for our Python script are incompatible with the ones
+needed by the cloud-init scripts, so we need to separate environments.
 
 Save with CTRL+X, then create the Python script configuration file:
 ```bash
@@ -811,10 +829,11 @@ After=ossfs.service
 [Service]
 Type=simple
 RemainAfterExit=yes
-ExecStart=/usr/bin/python2.7 /opt/certificate-updater.py
+ExecStart=/usr/local/bin/pipenv run python2 /opt/certificate-updater/certificate-updater.py
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=certificate-updater
+WorkingDirectory=/opt/certificate-updater
 
 [Install]
 WantedBy=multi-user.target
@@ -835,12 +854,24 @@ Write the following content:
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-15 */12 * * * root /usr/bin/python2.7 /opt/certificate-updater.py 2>&1 | /usr/bin/logger -t certificate-updater
+15 */12 * * * root systemd-cat -t "certificate-updater" /opt/certificate-updater/certificate-updater.sh
 ```
-This file configures Cron to run our Python script every day at 12h15 AM / PM. The console output is sent to syslog
-with the [logger command](http://man7.org/linux/man-pages/man1/logger.1.html).
+This file configures Cron to run "certificate-updater.sh" every day at 12h15 AM / PM. The console output is sent to
+syslog with the [systemd-cat command](https://www.freedesktop.org/software/systemd/man/systemd-cat.html).
 
-Save this file with CTRL+X.
+Save this file with CTRL+X. The file "certificate-updater.sh" does only 2 things: set the right working directory
+for pipenv and invoke our Python script:
+```bash
+# Create the script that invokes the certificate updater
+nano resources/certificate-manager.sh
+```
+Enter the following content:
+```bash
+#!/usr/bin/env bash
+cd /opt/certificate-updater
+/usr/local/bin/pipenv run python2 /opt/certificate-updater/certificate-updater.py
+```
+Save and quit by pressing CTRL+X.
 
 ### Cloud resources
 Now that we can generate an image, let's create the ECS instance and other related cloud resources.

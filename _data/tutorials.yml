@@ -41,6 +41,14 @@
       This part is a direct extension to the part 4: it explains how to configure HTTPS with SSL/TLS certificates
       from "Let's Encrypt".
     concepts: HTTPS, SSL/TLS certificate, Let's Encrypt, OpenAPI, Python, Terraform, Packer
+  - name: Log management
+    link: tutorials/devops_for_small_to_medium_web_applications/part_06_log_management.html
+    description: >-
+      Logs allow administrators and developers to better understand how an application behave. However it can be quite
+      challenging to consult logs when they are located on several servers. Log Service is a solution for this problem:
+      it provides tools to collects logs from multiple servers and to let authorized persons to search for information
+      in them.
+    concepts: Log Service, Rsyslog, Logtail, Log Project, Log Store
 - name: Getting started with CI/CD and Kubernetes
   link: tutorials/getting_started_with_devops_with_kubernetes/README.html
   description: >-
