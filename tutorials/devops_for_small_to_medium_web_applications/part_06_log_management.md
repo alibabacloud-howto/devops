@@ -479,9 +479,13 @@ due to the fact that we configured its [scheduling algorithm](https://www.alibab
 to [weighted round robin](https://en.wikipedia.org/wiki/Weighted_round_robin) and set the same weight for all ECS
 instances.
 
-We can also remark that each row contains contents organized by fields (app-name, hostname, msg, ...). We can make
+We can also remark that each row is organized by fields (app-name, hostname, msg, ...). We can make
 search easier and faster by adding our own fields (for example by splitting a message "2018-12-17 10:06:44.111 INFO
 705 --- \[nio-8080-exec-4] c.a.i.t.controllers.TaskController : Delete the task with the UUID:
 4d3d5eb5-e21b-42f5-9681-fec5b52bf266" into datetime, level, process-id, thread-name, logger-name and message). For that
-we can modify Rsyslog and Logtail configurations or directly modify our Java application to use the
+we can modify Rsyslog and Logtail configurations (attribute `streamlog_formats` in
+"/usr/local/ilogtail/ilogtail_config.json") or directly modify our Java application to use the
 [aliyun-log-log4j-appender](https://github.com/aliyun/aliyun-log-log4j-appender).
+
+Note: if you let your system running for one day, you can also check the logs of the certificate manager by searching
+for the query "app-name=certificate-updater".
