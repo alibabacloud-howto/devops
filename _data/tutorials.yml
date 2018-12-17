@@ -49,12 +49,6 @@
       it provides tools to collects logs from multiple servers and to let authorized persons to search for information
       in them.
     concepts: Log Service, Rsyslog, Logtail, Log Project, Log Store
-  - name: Maintenance and evolution
-    link: tutorials/devops_for_small_to_medium_web_applications/part_07_maintenance_evolution.html
-    description: >-
-      This document deals with many important subjects that were not covered in previous parts in order to build a
-      professional web application on Alibaba Cloud.
-    concepts: monitoring and alarms, database schema evolution, user management, Decommissioning
 - name: Getting started with CI/CD and Kubernetes
   link: tutorials/getting_started_with_devops_with_kubernetes/README.html
   description: >-
