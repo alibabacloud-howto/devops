@@ -354,7 +354,7 @@ This script executes the following actions:
 Save and quit by pressing CTRL+X, then create the Nginx configuration file:
 ```bash
 # Create the Nginx configuration file
-nano infrastructure/15_certman/05_image/resources/nginx-conf-certman
+nano resources/nginx-conf-certman
 ```
 Enter the following content into the new file:
 ```
@@ -493,6 +493,11 @@ Edit the content with the following changes:
     },
     {
       "type": "file",
+      "source": "resources/certificate-manager.sh",
+      "destination": "/opt/certificate-updater/certificate-updater.sh"
+    },
+    {
+      "type": "file",
       "source": "resources/certificate-updater.service",
       "destination": "/etc/systemd/system/certificate-updater.service"
     },
@@ -536,6 +541,7 @@ Edit the content with the following changes:
         "sed -i \"s/%domain%/${ESCAPED_DOMAIN}/\" /etc/certificate-updater/config.ini",
         "sed -i \"s/%sub-domain%/${ESCAPED_SUB_DOMAIN}/\" /etc/certificate-updater/config.ini",
         "sed -i \"s/%email-address%/${ESCAPED_EMAIL_ADDRESS}/\" /etc/certificate-updater/config.ini",
+        "chmod +x /opt/certificate-updater/certificate-updater.sh",
         "systemctl enable certificate-updater.service"
       ]
     }
@@ -549,6 +555,7 @@ expire.
 We are also uploading many new files:
 * certificate-updater.py - a script written in Python that checks whether the current certificate it up to date,
   renews it if necessary, and changes the SLB configuration;
+* certificate-updater.sh - a Bash script that sets the correct working directory and then calls certificate-updater.py;
 * certificate-updater-config.ini - the configuration file for "certificate-updater.py";
 * certificate-updater.service - a SystemD script to execute "certificate-updater.py" when the VM starts;
 * certificate-updater-cron - a [Cron](https://en.wikipedia.org/wiki/Cron) script to run
@@ -847,12 +854,24 @@ Write the following content:
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-15 */12 * * * root cd /opt/certificate-updater && /usr/local/bin/pipenv run python2 /opt/certificate-updater/certificate-updater.py 2>&1 | /usr/bin/logger -t certificate-updater
+15 */12 * * * root systemd-cat -t "certificate-updater" /opt/certificate-updater/certificate-updater.sh
 ```
-This file configures Cron to run our Python script every day at 12h15 AM / PM. The console output is sent to syslog
-with the [logger command](http://man7.org/linux/man-pages/man1/logger.1.html).
+This file configures Cron to run "certificate-updater.sh" every day at 12h15 AM / PM. The console output is sent to
+syslog with the [systemd-cat command](https://www.freedesktop.org/software/systemd/man/systemd-cat.html).
 
-Save this file with CTRL+X.
+Save this file with CTRL+X. The file "certificate-updater.sh" does only 2 things: set the right working directory
+for pipenv and invoke our Python script:
+```bash
+# Create the script that invokes the certificate updater
+nano resources/certificate-manager.sh
+```
+Enter the following content:
+```bash
+#!/usr/bin/env bash
+cd /opt/certificate-updater
+/usr/local/bin/pipenv run python2 /opt/certificate-updater/certificate-updater.py
+```
+Save and quit by pressing CTRL+X.
 
 ### Cloud resources
 Now that we can generate an image, let's create the ECS instance and other related cloud resources.
