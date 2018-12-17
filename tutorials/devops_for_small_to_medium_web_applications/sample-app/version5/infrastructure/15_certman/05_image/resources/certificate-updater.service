@@ -1,0 +1,17 @@
+[Unit]
+Description=certificate-updater
+After=syslog.target
+After=network.target
+After=ossfs.service
+
+[Service]
+Type=simple
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/pipenv run python2 /opt/certificate-updater/certificate-updater.py
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=certificate-updater
+WorkingDirectory=/opt/certificate-updater
+
+[Install]
+WantedBy=multi-user.target
