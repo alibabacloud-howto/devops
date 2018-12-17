@@ -15,7 +15,7 @@ layout: default
 
 ## Introduction
 Working with application logs become more complex when the number of servers increase: for example when there is only
-one server, an administrator just needs to connect to this machine and read the "/var/logs" folder and execute
+one server, an administrator just needs to connect to this machine and reads the "/var/logs" folder and execute
 commands such as `journalctl --unit=todo-list`. But when the number of servers increase, the same administrator
 must connect to each machine in order to find the information he's looking for. This become even worse when auto-scaling
 is enabled, because servers are automatically created and released.
@@ -50,7 +50,7 @@ Both the log project and Logtail must be configured:
 * Logtail needs a configuration to understand how to parse logs from Rsyslog (the fields / columns in each log line)
   and how to send them to the Log Service (the endpoint, buffer size, ...)
 * The log project needs to be configured in order to know what are the logs that needs to be stored (e.g. from which
-  data source). This configuration refers to the ECS instances via
+  data source). This configuration is related to the ECS instances via
   [machine groups](https://www.alibabacloud.com/help/doc-detail/28966.htm).
 
 ## Infrastructure improvements
@@ -85,7 +85,7 @@ resource "alicloud_log_machine_group" "app_log_machine_group" {
 }
 ```
 We should also add an ingress security group rule in order to open the port 11111 (used by Logtail). Add the
-following block under the `accept_8080_rule`:
+following block under `accept_8080_rule`:
 ```hcl-terraform
 resource "alicloud_security_group_rule" "accept_11111_rule" {
   type = "ingress"
@@ -217,7 +217,7 @@ As you can see, this provisioner executes the following actions:
 * Create the file "/etc/ilogtail/user_defined_id" and put "logtail-id-${ENVIRONMENT}" inside. This is a necessary step
   in order to inform Logtail that it is running inside an ECS instance that belongs to the machine group
   "sample-app-log-machine-group-${var.env}" (created via Terraform).
-* Download and install Logtail (also called ilogtail sometime). Note that this installation script automatically starts
+* Download and install Logtail (also called ilogtail). Note that this installation script automatically starts
   Logtail on the machine.
 * Modify the the properties `streamlog_open` and `streamlog_formats` in the Logtail configuration file
   "/usr/local/ilogtail/ilogtail_config.json". Note that Logtail has configuration files in two locations:
@@ -226,10 +226,10 @@ As you can see, this provisioner executes the following actions:
   private ip address of the ECS instance used by Packer to create the VM image. Logtail will automatically re-create
   this file when the VM image is used to start our "real" ECS instances.
 * Remove the Logtail default startup script (/etc/init.d/ilogtaild) and replace it by our own (we will create it in
-  a moment). We need to do that because we need to control when Logtail starts: when our ECS instance starts for the
-  first time, [cloud-init](https://www.alibabacloud.com/help/doc-detail/57803.htm) scripts reconfigure the system
-  by setting attributes such as the hostname. We need to make sure that Logtail starts AFTER cloud-init, that's why
-  we create our own [SystemD](https://www.freedesktop.org/wiki/Software/systemd/) script.
+  a moment). We need to do that because we need to control the moment when Logtail starts: when our ECS instance starts
+  for the first time, [cloud-init](https://www.alibabacloud.com/help/doc-detail/57803.htm) scripts reconfigure the
+  system by setting attributes such as the hostname. We need to make sure that Logtail starts AFTER cloud-init,
+  that's why we create our own [SystemD](https://www.freedesktop.org/wiki/Software/systemd/) script.
 
 Let's create this SystemD script now:
 ```bash
@@ -270,7 +270,7 @@ with `ExecStartPre=/bin/sleep 5` to make sure the cloud-init scripts have comple
 Copy this file for the certificate manager machine:
 ```bash
 # Copy the Logtail startup script
-cp infrastructure/10_webapp/10_image/resources/logtail.service infrastructure/15_certman/05_image/resources/logtail.service
+cp infrastructure/10_webapp/10_image/resources/logtail.service infrastructure/15_certman/05_image/resources/
 ```
 
 We also need to configure Rsyslog to forward logs to Logtail:
@@ -293,7 +293,7 @@ $template ALI_LOG_FMT,"0.1 sys_tag %timegenerated:::date-unixtimestamp% %fromhos
 Save and exit by pressing CTRL+X. Copy the same file for the certificate manager:
 ```bash
 # Copy the Rsyslog configuration script
-cp infrastructure/10_webapp/10_image/resources/rsyslog-logtail.conf infrastructure/15_certman/05_image/resources/rsyslog-logtail.conf
+cp infrastructure/10_webapp/10_image/resources/rsyslog-logtail.conf infrastructure/15_certman/05_image/resources/
 ```
 Add a provisioner into the application Packer script in order to upload this configuration file:
 ```bash
@@ -320,7 +320,7 @@ Save and exit with CTRL+X. Edit in a similar way the certificate manager image s
 # Edit the certificate manager image script
 nano infrastructure/15_certman/05_image/certman_image.json
 ```
-Add the same provisioner as above then save and quit with CTRL+X.
+Add the same provisioners as above then save and quit with CTRL+X.
 
 ### CI/CD pipeline update
 We need to update our pipeline definition file (.gitlab-ci.yml) in order to run our Python script
@@ -376,7 +376,7 @@ As you can see we have added two commands:
 * ./gitlab-ci-scripts/deploy/install_python_packages.sh
 * python3 ./gitlab-ci-scripts/deploy/update_logtail_config.py $ALICLOUD_ACCESS_KEY $ALICLOUD_SECRET_KEY $ALICLOUD_REGION $ENV_NAME
 
-The final step is to commit and push your changes to GitLab:
+The final step is to commit and push the changes to GitLab:
 ```bash
 # Check files to commit
 git status
@@ -428,13 +428,13 @@ yourself by opening your web application (http://dev.my-sample-domain.xyz/) and 
 it may be necessary to wait for few minutes for the logs to appear.
 
 ## Log search
-Let's check the logging configuration:
+Now that we collect logs, let's check how to search into them:
 * Open your web application (http://dev.my-sample-domain.xyz/) and create 4 tasks (Task 1, Task 2, Task 3 and Task 4),
   then delete them one by one.
 * Go the the [Log Service console](https://sls.console.aliyun.com/);
 * Click on the log project "sample-app-log-project-dev";
 * Click on "Search" next to the "sample-app-log-store-dev" log store;
-* The new page should display logs with a search bar on top; enter app-name=todo-list in this bar and click on
+* The new page should display logs with a search bar on top; enter `app-name=todo-list` in this bar and click on
   "Search & Analysis";
 * The "Raw Logs" panel should now only contains the logs of our application:
 
@@ -488,4 +488,4 @@ we can modify Rsyslog and Logtail configurations (attribute `streamlog_formats` 
 [aliyun-log-log4j-appender](https://github.com/aliyun/aliyun-log-log4j-appender).
 
 Note: if you let your system running for one day, you can also check the logs of the certificate manager by searching
-for the query "app-name=certificate-updater".
+for the query `app-name=certificate-updater`.
