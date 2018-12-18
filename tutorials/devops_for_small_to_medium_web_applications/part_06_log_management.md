@@ -266,8 +266,8 @@ WantedBy=multi-user.target
 ```
 Save and quit by pressing CTRL+X.
 
-As you can see at the beginning of this script, we start Logtail after the cloud-init scripts. We even wait 5 seconds
-with `ExecStartPre=/bin/sleep 5` to make sure the cloud-init scripts have completed their tasks.
+As you can see at the beginning of this script, we start Logtail after the cloud-init scripts. We even wait for 5
+seconds with `ExecStartPre=/bin/sleep 5` to make sure the cloud-init scripts have completed their tasks.
 
 Copy this file for the certificate manager machine:
 ```bash
@@ -297,7 +297,7 @@ Save and exit by pressing CTRL+X. Copy the same file for the certificate manager
 # Copy the Rsyslog configuration script
 cp infrastructure/10_webapp/10_image/resources/rsyslog-logtail.conf infrastructure/15_certman/05_image/resources/
 ```
-Add a provisioner into the application Packer script in order to upload this configuration file:
+Add provisioners into the application Packer script in order to upload the configuration files:
 ```bash
 # Edit the application image script
 nano infrastructure/10_webapp/10_image/app_image.json
