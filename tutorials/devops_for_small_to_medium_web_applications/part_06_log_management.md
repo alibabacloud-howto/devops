@@ -1,6 +1,7 @@
 ---
 layout: default
 ---
+{% raw  %}
 # DevOps for small / medium web apps - Part 6 - Log management
 
 ## Summary
@@ -525,3 +526,4 @@ the production one.
 
 You can check the configuration by browsing to the [Log Service console](https://sls.console.aliyun.com/) and
 by exploring the log projects "sample-app-log-project-pre-prod" and "sample-app-log-project-prod".
+{% endraw %}
