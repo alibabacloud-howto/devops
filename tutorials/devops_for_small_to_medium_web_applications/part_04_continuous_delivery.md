@@ -379,7 +379,11 @@ Copy the following content into your script:
       "instance_type": "{{user `instance_type`}}",
       "io_optimized": "true",
       "internet_charge_type": "PayByTraffic",
-      "image_force_delete": "true"
+      "image_force_delete": "true",
+      "system_disk_mapping": {
+        "disk_category": "cloud_ssd",
+        "disk_size": 20
+      }
     }
   ],
   "provisioners": [
@@ -1021,7 +1025,11 @@ The "app_image.json" file is a Packer script:
       "instance_type": "{{user `instance_type`}}",
       "io_optimized": "true",
       "internet_charge_type": "PayByTraffic",
-      "image_force_delete": "true"
+      "image_force_delete": "true",
+      "system_disk_mapping": {
+        "disk_category": "cloud_ssd",
+        "disk_size": 20
+      }
     }
   ],
   "provisioners": [
