@@ -1365,7 +1365,7 @@ variables:
   ECS_ROOT_PASSWORD: "your-ecs-root-password"
   OSSFS_VERSION: "1.80.5"
   TERRAFORM_VERSION: "0.11.10"
-  PACKER_VERSION: "1.3.2"
+  PACKER_VERSION: "1.3.3"
 # ...
 stages:
   - build
@@ -1671,7 +1671,7 @@ Before we commit these scripts, we first need to add new variables in our GitLab
   * ECS_ROOT_PASSWORD = the root password of your ECS instances (e.g. YourSecretPassw0rdForEcs)
   * OSSFS_VERSION = [latest OSSFS version](https://github.com/aliyun/ossfs/releases) (e.g. 1.80.5)
   * TERRAFORM_VERSION = [latest Terraform version](https://github.com/hashicorp/terraform/releases) (e.g. 0.11.10)
-  * PACKER_VERSION = [latest Packer version](https://github.com/hashicorp/packer/releases) (e.g. 1.3.2)
+  * PACKER_VERSION = [latest Packer version](https://github.com/hashicorp/packer/releases) (e.g. 1.3.3)
 * Click on "Save variables";
 
 Let's commit and push our changes. Open your terminal and type:
