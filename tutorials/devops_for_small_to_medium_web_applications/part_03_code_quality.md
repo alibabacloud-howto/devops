@@ -341,7 +341,8 @@ The first step is to obtain a token from SonarQube:
 
 Note: the following part of this section will modify two files:
 [pom.xml](https://maven.apache.org/guides/introduction/introduction-to-the-pom.html) and
-[.gitlab-ci.yml](https://docs.gitlab.com/ee/ci/yaml/). You can see the results by browsing in the "sample-app/version2"
+[.gitlab-ci.yml](https://docs.gitlab.com/ee/ci/yaml/). You can see the results by browsing in the
+["sample-app/version2"](https://github.com/alibabacloud-howto/devops/tree/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version2)
 folder of this tutorial.
 
 The second step is to modify the [pom.xml](https://maven.apache.org/guides/introduction/introduction-to-the-pom.html)

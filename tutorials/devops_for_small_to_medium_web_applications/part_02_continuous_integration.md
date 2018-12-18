@@ -85,7 +85,9 @@ cd todolist
 ls -la
 ```
 
-Copy all the files from the folder "sample-app/version1/*" of this tutorial into "~/projects/todolist". You should
+Copy all the files from the folder
+["sample-app/version1/*"](https://github.com/alibabacloud-howto/devops/tree/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version1)
+of this tutorial into "~/projects/todolist". You should
 have a directory with the following top files:
 * .git              - Folder containing information for git.
 * .gitignore        - List of files to ignore for Git.

@@ -642,7 +642,9 @@ Check that everything worked in your GitLab pipeline (the URL should be somethin
 https://gitlab.my-sample-domain.xyz/marcplouhinec/todolist/pipelines) and in your SonarQube dashboard (the URL should
 be something like https://sonar.my-sample-domain.xyz/dashboard?id=com.alibaba.intl%3Atodo-list%3Amaster).
 
-Note: the code modifications above are included in the "sample-app/version3" folder.
+Note: the code modifications above are included in the
+["sample-app/version3"](https://github.com/alibabacloud-howto/devops/tree/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version3)
+folder.
 
 ## Application infrastructure
 In this section we will create Packer and Terraform scripts that will create the following cloud resources for
@@ -666,8 +668,9 @@ Note: we will deal with the third group in the next part of this tutorial.
 In addition, we will commit our infrastructure scripts alongside the application source code. The logic behind this
 design choice is to make sure both code bases are synchronized.
 
-Because the scripts are quite large, we will copy them from the "sample-app/version3" folder of this tutorial. Open a
-terminal and execute the following commands:
+Because the scripts are quite large, we will copy them from the
+["sample-app/version3"](https://github.com/alibabacloud-howto/devops/tree/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version3)
+folder of this tutorial. Open a terminal and execute the following commands:
 ```bash
 # Go to the project folder
 cd ~/projects/todolist
@@ -1391,7 +1394,8 @@ deploy:
     - pre-production
     - production
 ```
-Note: the complete version of this file can be found in "sample-app/version3/.gitlab-ci.yml".
+Note: the complete version of this file can be found in
+["sample-app/version3/.gitlab-ci.yml"](https://github.com/alibabacloud-howto/devops/blob/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version3/.gitlab-ci.yml).
 
 As you can see, we have added a third stage named "deploy" after "build" and "quality". The `only` property means that
 this stage is only executed for the branches "master", "pre-production" and "production"; it means that a commit in a

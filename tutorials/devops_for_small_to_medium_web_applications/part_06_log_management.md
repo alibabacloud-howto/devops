@@ -25,7 +25,7 @@ A solution to this problem is to use the [Log Service](https://www.alibabacloud.
 is to collect logs from servers and let administrators / developers to search in them.
 
 Note: you can find the source code containing the modifications described in this part in the folder
-"sample-app/version5".
+["sample-app/version5"](https://github.com/alibabacloud-howto/devops/tree/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version5).
 
 ## Architecture
 Configuring Alibaba Cloud Log Service is a bit complex. The following diagram illustrates how it works:

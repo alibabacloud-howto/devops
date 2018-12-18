@@ -93,7 +93,8 @@ temporary [self-signed certificate](https://en.wikipedia.org/wiki/Self-signed_ce
 script. 
 
 Note: the complete project files with the modifications of this tutorial part are available in the
-"sample-app/version4" folder.
+["sample-app/version4"](https://github.com/alibabacloud-howto/devops/tree/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version4)
+folder.
 
 Open "gitlab-ci-scripts/deploy/build_basis_infra.sh" and insert the following block before
 `# Set values for Terraform variables`:
