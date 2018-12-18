@@ -23,6 +23,7 @@ variables:
   ALICLOUD_REGION: "your-region-id"
   GITLAB_BUCKET_NAME: "gitlab-my-sample-domain-xyz"
   GITLAB_BUCKET_ENDPOINT: "http://oss-ap-southeast-1-internal.aliyuncs.com"
+  ECS_ENDPOINT: "ecs.aliyuncs.com"
   DOMAIN_NAME: "my-sample-domain.xyz"
   DB_ACCOUNT_PASSWORD: "your-db-password"
   ECS_ROOT_PASSWORD: "your-ecs-root-password"

@@ -1360,6 +1360,7 @@ variables:
   ALICLOUD_REGION: "your-region-id"
   GITLAB_BUCKET_NAME: "gitlab-my-sample-domain-xyz"
   GITLAB_BUCKET_ENDPOINT: "http://oss-ap-southeast-1-internal.aliyuncs.com"
+  ECS_ENDPOINT: "ecs.aliyuncs.com"
   DOMAIN_NAME: "my-sample-domain.xyz"
   DB_ACCOUNT_PASSWORD: "your-db-password"
   ECS_ROOT_PASSWORD: "your-ecs-root-password"
@@ -1666,6 +1667,10 @@ Before we commit these scripts, we first need to add new variables in our GitLab
   * GITLAB_BUCKET_ENDPOINT = the OSS bucket endpoint (e.g. http://oss-ap-southeast-1-internal.aliyuncs.com); you can
     get it from the [OSS console](https://oss.console.aliyun.com/), by selecting your bucket and by copying the
     endpoint next to "VPC Network Access from ECS (Internal Network)"
+  * ECS_ENDPOINT = the ECS Service endpoint. You can find the complete list in
+    [this document](https://www.alibabacloud.com/help/doc-detail/25489.htm). If you are unsure, set it to
+    "ecs.aliyuncs.com". This variable is used by Packer when it creates a VM image. Setting this variable to your
+    region improves the performance and reduces the probability of timeout errors.
   * DOMAIN_NAME = your domain name (e.g. my-sample-domain.xyz)
   * DB_ACCOUNT_PASSWORD = the password of the "todolist" user in the MySQL database (e.g. YourSecretPassw0rdForRds)
   * ECS_ROOT_PASSWORD = the root password of your ECS instances (e.g. YourSecretPassw0rdForEcs)
