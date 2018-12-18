@@ -322,6 +322,27 @@ nano infrastructure/15_certman/05_image/certman_image.json
 ```
 Add the same provisioners as above then save and quit with CTRL+X.
 
+The last step is to force our applications to start after Logtail is started, in order to make sure that their logs are
+completely collected. Let's edit the SystemD scripts:
+```bash
+# Edit the SystemD script for our web application
+nano infrastructure/10_webapp/10_image/resources/todo-list.service
+```
+Add the following content below `After=network.target`:
+```
+After=logtail.service
+```
+Save and quit by pressing CTRL+X. Let's edit the certificate updater as well:
+```bash
+# Edit the SystemD script for our certificate updater
+nano infrastructure/15_certman/05_image/resources/certificate-updater.service
+```
+Add the following content below `After=ossfs.service`:
+```
+After=logtail.service
+```
+Save and quit by pressing CTRL+X.
+
 ### CI/CD pipeline update
 We need to update our pipeline definition file (.gitlab-ci.yml) in order to run our Python script
 "update_logtail_config.py". But before we need to create a script that installs its dependencies:
@@ -388,8 +409,10 @@ git add gitlab-ci-scripts/deploy/update_logtail_config.py
 git add infrastructure/05_vpc_slb_eip_domain/main.tf
 git add infrastructure/10_webapp/10_image/app_image.json
 git add infrastructure/10_webapp/10_image/resources/logtail.service
+git add infrastructure/10_webapp/10_image/resources/todo-list.service
 git add infrastructure/10_webapp/10_image/resources/rsyslog-logtail.conf
 git add infrastructure/15_certman/05_image/certman_image.json
+git add infrastructure/15_certman/05_image/resources/certificate-updater.service
 git add infrastructure/15_certman/05_image/resources/logtail.service
 git add infrastructure/15_certman/05_image/resources/rsyslog-logtail.conf
 

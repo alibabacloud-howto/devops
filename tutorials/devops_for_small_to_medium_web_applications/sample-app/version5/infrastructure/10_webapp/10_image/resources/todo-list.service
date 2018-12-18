@@ -2,6 +2,7 @@
 Description=todo-list
 After=syslog.target
 After=network.target
+After=logtail.service
 
 [Service]
 ExecStart=/usr/bin/java -Xmx1800m -jar /opt/todo-list/todo-list.jar --spring.config.location=file:/etc/todo-list/application.properties

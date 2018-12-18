@@ -3,6 +3,7 @@ Description=certificate-updater
 After=syslog.target
 After=network.target
 After=ossfs.service
+After=logtail.service
 
 [Service]
 Type=simple
