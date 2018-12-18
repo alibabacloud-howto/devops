@@ -35,6 +35,7 @@ variables:
 cache:
   paths:
     - ./.m2/repository
+    - ./.sonar/cache
 
 stages:
   - build
@@ -48,7 +49,7 @@ build:
 quality:
   stage: quality
   script:
-    - "mvn clean install sonar:sonar -Dsonar.host.url=$SONAR_URL -Dsonar.login=$SONAR_LOGIN -Dsonar.branch=$CI_COMMIT_REF_NAME -Dmaven.test.failure.ignore=true"
+    - "mvn clean install sonar:sonar -Dsonar.host.url=$SONAR_URL -Dsonar.login=$SONAR_LOGIN -Dsonar.branch=$CI_COMMIT_REF_NAME -Dmaven.test.failure.ignore=true -Duser.home=."
     - "wget https://github.com/gabrie-allaigre/sonar-gate-breaker/releases/download/1.0.1/sonar-gate-breaker-all-1.0.1.jar"
     - "java -jar sonar-gate-breaker-all-1.0.1.jar -u $SONAR_LOGIN"
   artifacts:
