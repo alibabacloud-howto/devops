@@ -27,7 +27,7 @@ variables:
   DB_ACCOUNT_PASSWORD: "your-db-password"
   ECS_ROOT_PASSWORD: "your-ecs-root-password"
   OSSFS_VERSION: "1.80.5"
-  TERRAFORM_VERSION: "0.11.10"
+  TERRAFORM_VERSION: "0.11.11"
   PACKER_VERSION: "1.3.3"
 
 cache:
