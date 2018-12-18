@@ -12,6 +12,7 @@ layout: default
    3. [VM images](#vm-images)
    4. [CI/CD pipeline update](#ci/cd-pipeline-update)
 3. [Log search](#log-search)
+4. [Pre-production and production environments](#pre-production-and-production-environments)
 
 ## Introduction
 Working with application logs become more complex when the number of servers increase: for example when there is only
@@ -512,3 +513,15 @@ we can modify Rsyslog and Logtail configurations (attribute `streamlog_formats` 
 
 Note: if you let your system running for one day, you can also check the logs of the certificate manager by searching
 for the query `app-name=certificate-updater`.
+
+## Pre-production and production environments
+Now that the development environment is ready, let's apply the changes to the pre-production and production
+environments as well.
+
+Please follow the instructions described
+[in the previous part](part_05_https_configuration.md#pre-production-and-production-environments) in order to
+create merge requests between the master branch into the pre-production one, and then from the pre-production to
+the production one.
+
+You can check the configuration by browsing to the [Log Service console](https://sls.console.aliyun.com/) and
+by exploring the log projects "sample-app-log-project-pre-prod" and "sample-app-log-project-prod".
