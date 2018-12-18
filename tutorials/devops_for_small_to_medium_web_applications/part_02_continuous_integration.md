@@ -1,6 +1,7 @@
 ---
 layout: default
 ---
+{% raw  %}
 # DevOps for small / medium web apps - Part 2 - Continuous Integration
 
 ## Summary
@@ -339,3 +340,4 @@ Note: even if this pipeline is simple, it is already quite useful for a team sin
 that somebody committed something bad (for example he missed a file, or some test fail unexpectedly). GitLab
 automatically sends an email to the person who made the mistake: this rapid feedback can save us a lot of time
 because the error cause has a great chance to be located in the code that we just modified.
+{% endraw %}

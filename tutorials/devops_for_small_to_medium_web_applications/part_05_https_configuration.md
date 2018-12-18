@@ -1,6 +1,7 @@
 ---
 layout: default
 ---
+{% raw  %}
 # DevOps for small / medium web apps - Part 5 - HTTPS configuration
 
 ## Summary
@@ -1259,3 +1260,4 @@ The `curl` command should succeed as well:
 </body>
 </html>
 ```
+{% endraw %}

@@ -1,6 +1,7 @@
 ---
 layout: default
 ---
+{% raw  %}
 # DevOps for small / medium web apps - Part 3 - Code quality
 
 ## Summary
@@ -672,3 +673,4 @@ git push origin master
 ```
 
 The GitLab pipeline and SonarQube project should be green again.
+{% endraw %}

@@ -1,6 +1,7 @@
 ---
 layout: default
 ---
+{% raw  %}
 # Getting started with Rancher
 
 ## Summary
@@ -314,3 +315,4 @@ your application:
 
 Congratulation if you managed to get this far! If you want to continue to learn about Kubernetes and Rancher,
 please read the [official documentation](https://rancher.com/docs/rancher/v2.x/en/k8s-in-rancher/).
+{% endraw %}

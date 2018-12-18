@@ -1,6 +1,7 @@
 ---
 layout: default
 ---
+{% raw  %}
 # Getting started with DevOps with Kubernetes
 
 ## Summary
@@ -264,3 +265,4 @@ Test the application by yourself:
   "Hello world!" message;
 * Add "?name=Seven" to the URL (so it should be something like "http://161.117.73.86?name=Seven"): you should see the
   "Hello Seven!" message.
+{% endraw %}

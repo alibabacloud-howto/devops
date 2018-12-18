@@ -1,6 +1,7 @@
 ---
 layout: default
 ---
+{% raw  %}
 # DevOps for small / medium web apps - Part 4 - Continuous Delivery
 
 ## Summary
@@ -1758,3 +1759,4 @@ your application is the following:
   
   ![Merge request: pre-production to production](images/gitlab-merge-request-pre-prod-prod.png)
 * Let another person to check and accept the merge request in order to start the deployment into production.
+{% endraw %}

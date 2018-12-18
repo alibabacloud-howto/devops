@@ -1,6 +1,7 @@
 ---
 layout: default
 ---
+{% raw  %}
 # DevOps for small / medium web apps - Part 0 - General introduction
 
 ## Summary
@@ -46,3 +47,4 @@ Finally, make sure you [have an Alibaba Cloud account](https://www.alibabacloud.
 Important: please download the 
 [related resources](https://github.com/alibabacloud-howto/devops/tree/master/tutorials/devops_for_small_to_medium_web_applications)
 before moving to the next part.
+{% endraw %}

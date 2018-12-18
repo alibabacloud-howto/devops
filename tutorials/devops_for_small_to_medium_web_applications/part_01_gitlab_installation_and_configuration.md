@@ -1,6 +1,7 @@
 ---
 layout: default
 ---
+{% raw  %}
 # DevOps for small / medium web apps - Part 1 - GitLab installation and configuration
 
 ## Summary
@@ -679,3 +680,4 @@ Another solution is to let other companies to manage this complexity for you. Th
 many [SaaS](https://en.wikipedia.org/wiki/Software_as_a_service) vendors such as
 [GitLab.com](https://about.gitlab.com/pricing/#gitlab-com) or [GitHub](https://github.com/business). Alibaba Cloud
 offers [Codepipeline](https://www.aliyun.com/product/codepipeline), but it is currently only available in Chinese.
+{% endraw %}
