@@ -108,6 +108,157 @@ like this:
     "registry-intl.ap-southeast-1.aliyuncs.com").
 
 ### Docker image project
-The next step is to create a new GitLab project where we will host the 
+The next step is to create a new GitLab project where we will host our
+[Dockerfile](https://docs.docker.com/engine/reference/builder/):
+* Open GitLab (the URL must be like https://gitlab.my-sample-domain.xyz/);
+* In the home page, click on the "New project" button;
+* Fill the new form with the following information:
+  * Project name = deployment-toolbox
+  * Project slug = deployment-toolbox
+  * Visibility Level = Private
+* Click on the "Create project" button;
+* In the new page, copy the URL for git (such as
+  "git@gitlab.my-sample-domain.xyz:marcplouhinec/deployment-toolbox.git").
+
+Open a terminal on your computer and run:
+```bash
+# Go to the projects directory
+cd projects
+
+# Git clone our new project (adapt the URL)
+git clone git@gitlab.my-sample-domain.xyz:marcplouhinec/deployment-toolbox.git
+
+# Go to the new project folder
+cd deployment-toolbox
+
+# Create our Docker image definition file
+nano Dockerfile
+```
+Copy the following content into the editor:
+```dockerfile
+FROM ubuntu:16.04
+
+ENV OSSFS_VERSION=1.80.5
+ENV TERRAFORM_VERSION=0.11.11
+ENV PACKER_VERSION=1.3.3
+
+# Install OSSFS
+RUN apt-get -y update
+RUN apt-get -y install gdebi-core wget unzip
+RUN wget "https://github.com/aliyun/ossfs/releases/download/v${OSSFS_VERSION}/ossfs_${OSSFS_VERSION}_ubuntu16.04_amd64.deb"
+RUN gdebi -n "ossfs_${OSSFS_VERSION}_ubuntu16.04_amd64.deb"
+
+# Install Terraform
+RUN wget "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+RUN unzip "terraform_${TERRAFORM_VERSION}_linux_amd64.zip" -d /usr/local/bin/
+
+# Install Packer
+RUN wget "https://releases.hashicorp.com/packer/${PACKER_VERSION}/packer_${PACKER_VERSION}_linux_amd64.zip"
+RUN unzip "packer_${PACKER_VERSION}_linux_amd64.zip" -d /usr/local/bin/
+
+# Install Python packages
+RUN apt-get -y install python3-pip
+RUN pip3 install -U aliyun-log-python-sdk
+
+CMD ["/bin/bash"]
+```
+Save and quit by pressing CTRL+X. If you have Docker on your machine, you can test this Dockerfile with the
+following commands:
+```bash
+# Build the Docker image
+docker build -t deployment-toolbox:latest .
+
+# Create a container with our new image
+docker run -it deployment-toolbox:latest
+```
+The last command executes bash inside the container. Let's test that our tools are correctly installed:
+```bash
+# Check OSSFS version
+ossfs --version
+
+# Check Terraform version
+terraform version
+
+# Check Packer version
+packer version
+
+# Check our Python dependency version
+pip3 show aliyun-log-python-sdk
+
+# Exit and kill the container
+exit
+```
+
+Let's create the GitLab pipeline definition file:
+```bash
+# Create the pipeline definition file
+nano .gitlab-ci.yml
+```
+Put the following text into this file:
+```yaml
+image: docker:stable
+
+variables:
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_DRIVER: overlay2
+  REGISTRY_USERNAME: sample-app-gitlab@your-user-id-or-enterprise-alias
+  REGISTRY_PASSWORD: your-docker-login-password
+  REGISTRY_URL: registry-intl.ap-southeast-1.aliyuncs.com
+  IMAGE_URL: registry-intl.ap-southeast-1.aliyuncs.com/my-sample-domain-xyz/deployment-toolbox
+
+services:
+  - docker:dind
+
+stages:
+  - build
+
+build:
+  stage: build
+  before_script:
+    - docker login -u $REGISTRY_USERNAME -p $REGISTRY_PASSWORD $REGISTRY_URL
+  script:
+    - docker pull $IMAGE_URL:latest || true
+    - docker build --cache-from $IMAGE_URL:latest --tag $IMAGE_URL:$CI_PIPELINE_IID --tag $IMAGE_URL:latest .
+    - docker push $IMAGE_URL:$CI_PIPELINE_IID
+    - docker push $IMAGE_URL:latest
+```
+Save and quit with CTRL+X.
+
+Before we commit and push our changes to GitLab, we first need to add new variables:
+* Open your web browser tab with GitLab; the deployment-toolbox project should be displayed;
+* In the left menu select "Settings > CI/CD";
+* Expand the "Variables" panel, and create the following variable:
+  * REGISTRY_USERNAME = the username you already used in the [previous section](#docker-repository-creation) when
+    you have tested your configuration with `docker login`;
+  * REGISTRY_PASSWORD = the password is the same as the one you set when you clicked on the
+    "Reset Docker Login Password" button;
+  * REGISTRY_URL = the domain name of your repository address;
+  * IMAGE_URL = your repository address;
+* Click on "Save variables";
+
+Let's commit the changes to GitLab:
+```bash
+# Check files to commit
+git status
+
+# Add the modified and new files
+git add .gitlab-ci.yml
+git add Dockerfile
+
+# Commit and push to GitLab
+git commit -m "Create the Dockerfile."
+git push origin master
+```
+
+Check your CI/CD pipeline (for the deployment-toolbox project) and make sure there is no error.
+
+You can also check on the Container Registry web console that the Docker image has been successfully pushed:
+* Go to the [Container Registry web console](https://cr.console.aliyun.com);
+* Click on the "Manage" link next to the "deployment-toolbox" repository;
+* Click on the "Tags" left menu item;
+
+The page should display your image tags:
+
+![Repository image tags](images/container-registry-repo-image-tag.png)
 
 {% endraw %}
