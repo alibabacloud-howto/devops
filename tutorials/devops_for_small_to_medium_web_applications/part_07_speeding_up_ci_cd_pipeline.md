@@ -9,10 +9,9 @@ layout: default
 1. [Deployment Docker image](#deployment-docker-image)
    1. [Docker repository creation](#docker-repository-creation)
    2. [Docker image project](#docker-image-project)
-   3. Pipeline update
-2. VM image pre-building
-3. Parallelization
-2. Pre-production and production environments
+   3. [Pipeline update](#pipeline-update)
+2. [Parallelization](#parallelization)
+3. Pre-production and production environments
 
 ## Introduction
 Until now we have been focusing on adding new functionalities to our application
@@ -20,6 +19,10 @@ Until now we have been focusing on adding new functionalities to our application
 have slowed down substantially our CI / CD pipeline, as it now takes about one hour to complete the full process.
 
 The goal of this tutorial part is to focus on this slow pipeline problem and to find ways to accelerate it.
+
+---TODO---
+Code available in version6 and deployment-toolbox/version1
+---TODO---
 
 ## Deployment Docker image
 The slowest stage of our pipeline is the one responsible for deployment, and its first task is always the same:
@@ -227,7 +230,7 @@ Save and quit with CTRL+X.
 Before we commit and push our changes to GitLab, we first need to add new variables:
 * Open your web browser tab with GitLab; the deployment-toolbox project should be displayed;
 * In the left menu select "Settings > CI/CD";
-* Expand the "Variables" panel, and create the following variable:
+* Expand the "Variables" panel, and create the following variables:
   * REGISTRY_USERNAME = the username you already used in the [previous section](#docker-repository-creation) when
     you have tested your configuration with `docker login`;
   * REGISTRY_PASSWORD = the password is the same as the one you set when you clicked on the
@@ -260,5 +263,81 @@ You can also check on the Container Registry web console that the Docker image h
 The page should display your image tags:
 
 ![Repository image tags](images/container-registry-repo-image-tag.png)
+
+### Pipeline update
+Let's update our pipeline in order to use our Docker image. Open your terminal and run:
+```bash
+# Go to the web application project folder
+cd ~/projects/todolist
+
+# Remove the tool installation scripts
+rm gitlab-ci-scripts/deploy/install_tools.sh
+rm gitlab-ci-scripts/deploy/install_python_packages.sh
+
+# Edit the pipeline definition file
+nano .gitlab-ci.yml
+```
+Apply the following modifications to this file:
+* Remove `TERRAFORM_VERSION: "0.11.11"` and `PACKER_VERSION: "1.3.3"` from the `variables` block;
+* In the `deploy` block, replace the `ubuntu:16.04` image by your image; it should be something like
+  `registry-intl.ap-southeast-1.aliyuncs.com/my-sample-domain-xyz/deployment-toolbox:latest`;
+* In the `deploy` block, remove the two scripts `- "./gitlab-ci-scripts/deploy/install_tools.sh"` and
+  `- "./gitlab-ci-scripts/deploy/install_python_packages.sh"`.
+
+Save and quit with CTRL+X.
+
+Before we commit our changes, we should configure GitLab because our Docker repository is private:
+* Open GitLab (the URL must be like https://gitlab.my-sample-domain.xyz/);
+* Switch to the "todolist" project;
+* Click on the left menu item "Settings > CI/CD";
+* Expand the "Variables" panel, and create the variable DOCKER_AUTH_CONFIG with the following content:
+  ```json
+  { "auths": { "registry-intl.ap-southeast-1.aliyuncs.com": { "auth": "3dFtcGxlLXFwcC1naXRsYWJAMTkzOTMwNjQyMTgzDMg2ODpIYW5nemhvdTEw" } } }
+  ```
+  Notes:
+  * The URL `registry-intl.ap-southeast-1.aliyuncs.com` must be adapted to your registry domain name.
+  * The `auth` value `3dFtcGxlLXFwcC1naXRsYWJAMTkzOTMwNjQyMTgzDMg2ODpIYW5nemhvdTEw` is a base64 string build like this:
+    ```bash
+    echo -n "sample-app-gitlab@your-user-id-or-enterprise-alias:your-docker-login-password" | base64
+    ```
+* Click on "Save variables";
+
+We can now commit the changes:
+```bash
+# Check files to commit
+git status
+
+# Add the modified and new files
+git add .gitlab-ci.yml
+git add gitlab-ci-scripts/deploy/install_tools.sh
+git add gitlab-ci-scripts/deploy/install_python_packages.sh
+
+# Commit and push to GitLab
+git commit -m "Replace the ubuntu image by our deployment-toolbox."
+git push origin master
+```
+
+TODO check the pipeline
+
+## Parallelization
+---TODO---
+Update gitlab-ci file:
+stages:
+  - build
+  - quality
+  - deploy_basis
+  - deploy_apps
+  
+deploy_basis:
+  stage: deploy_basis
+  
+deploy_webapp:
+  stage: deploy_apps
+  
+deploy_certman:
+  stage: deploy_apps
+
+Need to enable 2 job in // in GitLab: /etc/gitlab-runner/config.toml (concurrent 1 -> 2)
+---TODO---
 
 {% endraw %}
