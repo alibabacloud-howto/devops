@@ -1,0 +1,7 @@
+#
+# Execute the certificate updater.
+#
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+15 */12 * * * root systemd-cat -t "certificate-updater" /opt/certificate-updater/certificate-updater.sh

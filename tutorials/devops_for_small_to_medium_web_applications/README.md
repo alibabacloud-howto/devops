@@ -11,6 +11,7 @@ layout: default
 4. [Part 4 - Continuous Delivery](part_04_continuous_delivery.md)
 5. [Part 5 - HTTPS configuration](part_05_https_configuration.md)
 6. [Part 6 - Log management](part_06_log_management.md)
-7. Part 7 - Maintenance and evolution
-8. Part 8 - UI testing
-9. Part 9 - Auto-scaling
+7. [Part 7 - Speeding up CI / CD pipeline](part_07_speeding_up_ci_cd_pipeline.md)
+8. Part 8 - Maintenance and evolution
+9. Part 9 - UI testing
+10. Part 10 - Auto-scaling
