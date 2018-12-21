@@ -25,15 +25,15 @@ and
 ["deployment-toolbox/version1"](https://github.com/alibabacloud-howto/devops/tree/master/tutorials/devops_for_small_to_medium_web_applications/deployment-toolbox/version1).
 
 ## Deployment Docker image
-The slowest stage of our pipeline is the one responsible for deployment, and its first task is always the same:
-downloading and installing tools. It usually takes several minutes to complete and unnecessarily waste resources
-such as network bandwidth or computational.
+The slowest stage of our pipeline is the one responsible for deployment, and its first task is to
+download and install tools. It usually takes several minutes to complete and unnecessarily wastes resources
+such as network bandwidth.
 
 A way to speed up this first task is to create our own Docker image, and then use it in our pipeline.
 
 ### Docker repository creation
 The first step is to create a [repository](https://www.alibabacloud.com/help/doc-detail/60763.htm) via
-the [Container Registry Service](https://www.alibabacloud.com/help/doc-detail/60945.htm) in order to host our
+the [Container Registry service](https://www.alibabacloud.com/help/doc-detail/60945.htm) in order to host our
 own Docker images. Open a web browser tab and execute the following instructions:
 * Go to the [Container Registry web console](https://cr.console.aliyun.com);
 * If necessary, select your region on top of the page;
@@ -59,7 +59,7 @@ our repository:
 
 ![RAM web console](images/ram-web-console.png)
 
-* Copy the URL next to "RAM User Logon Link", we will need to use it later;
+* Copy the URL next to "RAM User Logon Link", we will use it later;
 * Click on the "Users" left menu item;
 * Click on the "Create User" button;
 * In the popup form set "sample-app-gitlab" in the "User Name" field and click on "OK";
@@ -88,12 +88,12 @@ like this:
 * Go to the [Container Registry web console](https://cr.console.aliyun.com) (with your normal account);
 * If necessary, select your region on top of the page;
 * The repository "deployment-toolbox" should be displayed; move your mouse cursor on top of the icon that looks like
-  an arrow going into a box under the "Repository Address" column; a popup should open with multiple URLS:
+  an arrow going into a box under the "Repository Address" column; a popup should open with multiple URLs:
   
 ![Repository addresses](images/container-registry-repository-addresses.png)
 
 * Click on the first address (next to "Internet") to copy it (it should be like
-  registry-intl.ap-southeast-1.aliyuncs.com/my-sample-domain-xyz/deployment-toolbox);
+  "registry-intl.ap-southeast-1.aliyuncs.com/my-sample-domain-xyz/deployment-toolbox");
 * Open a terminal and type:
   ```bash
   # Test your repository configuration
@@ -174,7 +174,7 @@ docker build -t deployment-toolbox:latest .
 # Create a container with our new image
 docker run -it deployment-toolbox:latest
 ```
-The last command executes bash inside the container. Let's test that our tools are correctly installed:
+The last command executes Bash inside the container. Let's check that our tools are correctly installed:
 ```bash
 # Check OSSFS version
 ossfs --version
@@ -233,18 +233,18 @@ Before we commit and push our changes to GitLab, we first need to add new variab
 * Expand the "Variables" panel, and create the following variables:
   * REGISTRY_USERNAME = the username you already used in the [previous section](#docker-repository-creation) when
     you have tested your configuration with `docker login`;
-  * REGISTRY_PASSWORD = the password is the same as the one you set when you clicked on the
+  * REGISTRY_PASSWORD = the password is the one you set when you clicked on the
     "Reset Docker Login Password" button;
   * REGISTRY_URL = the domain name of your repository address;
   * IMAGE_URL = your repository address;
-* Click on "Save variables";
+* Click on "Save variables".
 
 Let's commit the changes to GitLab:
 ```bash
-# Check files to commit
+# Check the files to commit
 git status
 
-# Add the modified and new files
+# Add the new files
 git add .gitlab-ci.yml
 git add Dockerfile
 
@@ -253,12 +253,12 @@ git commit -m "Create the Dockerfile."
 git push origin master
 ```
 
-Check your CI/CD pipeline (for the deployment-toolbox project) and make sure there is no error.
+Check your CI/CD pipeline (for the "deployment-toolbox" project) and make sure there is no error.
 
 You can also check on the Container Registry web console that the Docker image has been successfully pushed:
 * Go to the [Container Registry web console](https://cr.console.aliyun.com);
 * Click on the "Manage" link next to the "deployment-toolbox" repository;
-* Click on the "Tags" left menu item;
+* Click on the "Tags" left menu item.
 
 The page should display your image tags:
 
@@ -304,25 +304,26 @@ Before we commit our changes, we should configure GitLab because our Docker repo
 
 We can now commit the changes:
 ```bash
-# Check files to commit
+# Check the files to commit
 git status
 
-# Add the modified and new files
+# Add the modified and deleted files
 git add .gitlab-ci.yml
 git add gitlab-ci-scripts/deploy/install_tools.sh
 git add gitlab-ci-scripts/deploy/install_python_packages.sh
 
 # Commit and push to GitLab
-git commit -m "Replace the ubuntu image by our deployment-toolbox."
+git commit -m "Replace the Ubuntu image by our deployment-toolbox."
 git push origin master
 ```
 
 Check your CI / CD pipeline on GitLab, the "deploy" stage should be slightly faster.
 
 ## Parallelization
-The main reason the deploy stage takes so much time is the creation of the VM images. Fortunately this operation
-can be done in parallel: after we deploy the basis infrastructure (VPC, SLB, ...), we can create the web application
-and the certificate manager cloud resources at the same time. Open your terminal and execute the following commands:
+The main reason the deploy stage takes so much time is because of the creation of the VM images. Fortunately this
+stage can be done in parallel: after we deploy the basis infrastructure (VPC, SLB, ...), we can create / update the web
+application and the certificate manager cloud resources at the same time. Open your terminal and execute the
+following commands:
 ```bash
 # Go to the web application project folder
 cd ~/projects/todolist
@@ -388,8 +389,8 @@ deploy_certman:
     - pre-production
     - production
 ```
-As you can see the `deploy_apps` now has 2 jobs: `deploy_webapp` and `deploy_certman`. We didn't change the scripts,
-just execute them in parallel.
+As you can see the `deploy_apps` stage has 2 jobs: `deploy_webapp` and `deploy_certman`. We didn't change the
+scripts, just execute them in parallel.
 
 Save the modifications and quit with CTRL+X.
 
@@ -400,14 +401,13 @@ same time:
 * Select your region if necessary;
 * Search for your instance named "devops-simple-app-gitlab-runner";
 * Click on the "Connect" link on the right side of your instance;
-* The VNC console should appear: copy the VNC password displayed in the popup and paste it to the next one;
-* Authenticate yourself with the "root" user and the password you set when you
+* The VNC console should appear, authenticate yourself with the "root" user and the password you set when you
   [configured GitLab](part_01_gitlab_installation_and_configuration.md#gitlab-runner-installation-and-configuration);
 * Edit the GitLab Runner configuration file with this command:
   ```bash
   nano /etc/gitlab-runner/config.toml
   ```
-* Replace the setting `concurrent = 1` by `concurrent = 2`;
+* Replace the parameter `concurrent = 1` by `concurrent = 2`;
 * Save and quit by pressing CTRL+X;
 * Restart the GitLab Runner via the following command:
   ```bash
@@ -417,7 +417,7 @@ same time:
 
 Go back to your terminal and commit the changes to GitLab:
 ```bash
-# Check files to commit
+# Check the files to commit
 git status
 
 # Add the modified file
@@ -427,10 +427,10 @@ git add .gitlab-ci.yml
 git commit -m "Parallelize deployment."
 git push origin master
 ```
-{% endraw %}
 
-This time your GitLab pipeline should have 4 stages with 2 parallels jobs for the last one:
+This time the GitLab pipeline contains 4 stages with 2 parallels jobs for the last one:
 
 ![GitLab pipeline with jobs running in parallel](images/parallel-jobs-pipeline.png)
 
 As usual, you can now merge the master branch to pre-production, and then pre-production to production.
+{% endraw %}
