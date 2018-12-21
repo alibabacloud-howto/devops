@@ -49,6 +49,13 @@
       it provides tools to collects logs from multiple servers and to let authorized persons to search for information
       in them.
     concepts: Log Service, Rsyslog, Logtail, Log Project, Log Store
+  - name: Speeding up CI / CD pipeline
+    link: tutorials/devops_for_small_to_medium_web_applications/part_07_speeding_up_ci_cd_pipeline.html
+    description: >-
+      This part is quite short compared to the others: its objective is to reduce the time to process the
+      complete CI / CD pipeline. The solution is to create a custom Docker image for the deployment and to build
+      VM images in parallel.
+    concepts: Dockerfile, Container Registry, GitLab CI
 - name: Getting started with CI/CD and Kubernetes
   link: tutorials/getting_started_with_devops_with_kubernetes/README.html
   description: >-
