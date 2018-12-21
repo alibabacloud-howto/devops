@@ -11,7 +11,6 @@ layout: default
    2. [Docker image project](#docker-image-project)
    3. [Pipeline update](#pipeline-update)
 2. [Parallelization](#parallelization)
-3. Pre-production and production environments
 
 ## Introduction
 Until now we have been focusing on adding new functionalities to our application
@@ -20,9 +19,10 @@ have slowed down substantially our CI / CD pipeline, as it now takes about one h
 
 The goal of this tutorial part is to focus on this slow pipeline problem and to find ways to accelerate it.
 
----TODO---
-Code available in version6 and deployment-toolbox/version1
----TODO---
+Note: you can find the source code containing the modifications described in this part in the folders
+["sample-app/version6"](https://github.com/alibabacloud-howto/devops/tree/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version6)
+and 
+["deployment-toolbox/version1"](https://github.com/alibabacloud-howto/devops/tree/master/tutorials/devops_for_small_to_medium_web_applications/deployment-toolbox/version1).
 
 ## Deployment Docker image
 The slowest stage of our pipeline is the one responsible for deployment, and its first task is always the same:
@@ -317,27 +317,120 @@ git commit -m "Replace the ubuntu image by our deployment-toolbox."
 git push origin master
 ```
 
-TODO check the pipeline
+Check your CI / CD pipeline on GitLab, the "deploy" stage should be slightly faster.
 
 ## Parallelization
----TODO---
-Update gitlab-ci file:
+The main reason the deploy stage takes so much time is the creation of the VM images. Fortunately this operation
+can be done in parallel: after we deploy the basis infrastructure (VPC, SLB, ...), we can create the web application
+and the certificate manager cloud resources at the same time. Open your terminal and execute the following commands:
+```bash
+# Go to the web application project folder
+cd ~/projects/todolist
+
+# Edit the pipeline definition file
+nano .gitlab-ci.yml
+```
+Let's start by replacing the `deploy` stage by `deploy_basis` and `deploy_apps`:
+```yaml
 stages:
   - build
   - quality
   - deploy_basis
   - deploy_apps
-  
+```
+Then split the `deploy` job into 3 blocks:
+```yaml
 deploy_basis:
   stage: deploy_basis
-  
+  image: registry-intl.ap-southeast-1.aliyuncs.com/my-sample-domain-xyz/deployment-toolbox:latest
+  script:
+    - "export ENV_NAME=$(./gitlab-ci-scripts/deploy/get_env_name_by_branch_name.sh $CI_COMMIT_REF_NAME)"
+    - "export SUB_DOMAIN_NAME=$(./gitlab-ci-scripts/deploy/get_sub_domain_name_by_branch_name.sh $CI_COMMIT_REF_NAME)"
+    - "export BUCKET_LOCAL_PATH=/mnt/oss_bucket"
+    - "./gitlab-ci-scripts/deploy/mount_ossfs.sh"
+    - "./gitlab-ci-scripts/deploy/build_basis_infra.sh"
+    - "python3 ./gitlab-ci-scripts/deploy/update_logtail_config.py $ALICLOUD_ACCESS_KEY $ALICLOUD_SECRET_KEY $ALICLOUD_REGION $ENV_NAME"
+    - "umount $BUCKET_LOCAL_PATH"
+    - "sleep 10"
+  only:
+    - master
+    - pre-production
+    - production
+
 deploy_webapp:
   stage: deploy_apps
-  
+  image: registry-intl.ap-southeast-1.aliyuncs.com/my-sample-domain-xyz/deployment-toolbox:latest
+  script:
+    - "export ENV_NAME=$(./gitlab-ci-scripts/deploy/get_env_name_by_branch_name.sh $CI_COMMIT_REF_NAME)"
+    - "export BUCKET_LOCAL_PATH=/mnt/oss_bucket"
+    - "./gitlab-ci-scripts/deploy/mount_ossfs.sh"
+    - "./gitlab-ci-scripts/deploy/build_webapp_infra.sh"
+    - "umount $BUCKET_LOCAL_PATH"
+    - "sleep 10"
+  only:
+    - master
+    - pre-production
+    - production
+
 deploy_certman:
   stage: deploy_apps
+  image: registry-intl.ap-southeast-1.aliyuncs.com/my-sample-domain-xyz/deployment-toolbox:latest
+  script:
+    - "export ENV_NAME=$(./gitlab-ci-scripts/deploy/get_env_name_by_branch_name.sh $CI_COMMIT_REF_NAME)"
+    - "export SUB_DOMAIN_NAME=$(./gitlab-ci-scripts/deploy/get_sub_domain_name_by_branch_name.sh $CI_COMMIT_REF_NAME)"
+    - "export BUCKET_LOCAL_PATH=/mnt/oss_bucket"
+    - "./gitlab-ci-scripts/deploy/mount_ossfs.sh"
+    - "./gitlab-ci-scripts/deploy/build_certman_infra.sh"
+    - "umount $BUCKET_LOCAL_PATH"
+    - "sleep 10"
+  only:
+    - master
+    - pre-production
+    - production
+```
+As you can see the `deploy_apps` now has 2 jobs: `deploy_webapp` and `deploy_certman`. We didn't change the scripts,
+just execute them in parallel.
 
-Need to enable 2 job in // in GitLab: /etc/gitlab-runner/config.toml (concurrent 1 -> 2)
----TODO---
+Save the modifications and quit with CTRL+X.
 
+Before we commit we need to modify the GitLab Runner configuration in order to allow it to run multiple jobs at the
+same time:
+* Open the [ECS console](https://ecs.console.aliyun.com/);
+* Click on the "Instance" item in the left menu;
+* Select your region if necessary;
+* Search for your instance named "devops-simple-app-gitlab-runner";
+* Click on the "Connect" link on the right side of your instance;
+* The VNC console should appear: copy the VNC password displayed in the popup and paste it to the next one;
+* Authenticate yourself with the "root" user and the password you set when you
+  [configured GitLab](part_01_gitlab_installation_and_configuration.md#gitlab-runner-installation-and-configuration);
+* Edit the GitLab Runner configuration file with this command:
+  ```bash
+  nano /etc/gitlab-runner/config.toml
+  ```
+* Replace the setting `concurrent = 1` by `concurrent = 2`;
+* Save and quit by pressing CTRL+X;
+* Restart the GitLab Runner via the following command:
+  ```bash
+  gitlab-runner restart
+  ```
+* Quit the VNC session by entering the command `exit` and by closing the web browser tab.
+
+Go back to your terminal and commit the changes to GitLab:
+```bash
+# Check files to commit
+git status
+
+# Add the modified file
+git add .gitlab-ci.yml
+
+# Commit and push to GitLab
+git commit -m "Parallelize deployment."
+git push origin master
+```
 {% endraw %}
+
+This time your GitLab pipeline should have 4 stages with 2 parallels jobs for the last one:
+
+![GitLab pipeline with jobs running in parallel](images/parallel-jobs-pipeline.png)
+
+As usual, you can now merge the master branch to pre-production, and then pre-production to production.

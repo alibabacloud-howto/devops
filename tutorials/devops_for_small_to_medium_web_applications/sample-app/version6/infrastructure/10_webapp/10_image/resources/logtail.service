@@ -1,0 +1,23 @@
+[Unit]
+Description=logtail
+After=syslog.target
+After=network.target
+After=cloud-config.service
+After=cloud-final.service
+After=cloud-init-local.service
+After=cloud-init.service
+After=cloudmonitor.service
+After=cloud-config.target
+
+[Service]
+Type=simple
+RemainAfterExit=yes
+ExecStartPre=/bin/sleep 5
+ExecStart=/usr/local/ilogtail/ilogtail
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=logtail
+WorkingDirectory=/usr/local/ilogtail
+
+[Install]
+WantedBy=multi-user.target
