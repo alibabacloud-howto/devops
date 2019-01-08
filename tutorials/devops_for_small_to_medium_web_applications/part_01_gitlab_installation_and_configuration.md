@@ -348,6 +348,8 @@ cd /tmp
 wget https://github.com/aliyun/ossfs/releases/download/v1.80.5/ossfs_1.80.5_ubuntu16.04_amd64.deb
 gdebi ossfs_1.80.5_ubuntu16.04_amd64.deb
 ```
+Note: the [GitLab documentation](https://docs.gitlab.com/ee/raketasks/backup_restore.html#tar) requires tar version
+to be equals to or greater than 1.30.
 
 Let's now create an [OSS bucket](https://www.alibabacloud.com/product/oss) where we will store our backups:
 * Go to the [OSS console](https://oss.console.aliyun.com/);
