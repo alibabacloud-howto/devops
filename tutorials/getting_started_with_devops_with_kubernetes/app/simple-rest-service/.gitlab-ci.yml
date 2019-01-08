@@ -12,7 +12,7 @@
 # limitations under the License.
 #
 
-image: maven:3.5.4-jdk-8
+image: maven:3.6.0-jdk-8
 
 variables:
   DOCKER_REGISTRY_IMAGE_URL: "registry-intl.ap-southeast-1.aliyuncs.com/cicd-k8s-tutorial/simple-rest-service"
@@ -48,9 +48,9 @@ production:
   image: roffe/kubectl:latest
   stage: deploy
   script:
-  - apk add --update --no-cache openssh sshpass
-  - mkdir -p $HOME/.kube
-  - sshpass -p "$K8S_PASSWORD" scp -o StrictHostKeyChecking=no root@$K8S_MASTER_PUBLIC_IP:/etc/kubernetes/kube.conf $HOME/.kube/config
-  - cat deployment.yml | sed "s|\$DOCKER_REGISTRY_IMAGE_URL|$DOCKER_REGISTRY_IMAGE_URL|g" | kubectl apply -f -
+    - apk add --update --no-cache openssh sshpass
+    - mkdir -p $HOME/.kube
+    - sshpass -p "$K8S_PASSWORD" scp -o StrictHostKeyChecking=no root@$K8S_MASTER_PUBLIC_IP:/etc/kubernetes/kube.conf $HOME/.kube/config
+    - cat deployment.yml | sed "s|\$DOCKER_REGISTRY_IMAGE_URL|$DOCKER_REGISTRY_IMAGE_URL|g" | kubectl apply -f -
   only:
-  - master
+    - master

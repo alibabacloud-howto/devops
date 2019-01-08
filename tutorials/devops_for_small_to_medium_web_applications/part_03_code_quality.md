@@ -451,7 +451,7 @@ As you can see, the plugin needs to be configured with the following properties:
 
 The third step is to modify the [.gitlab-ci.yml](https://docs.gitlab.com/ee/ci/yaml/) file with the following changes:
 ```yaml
-image: maven:3.5.4-jdk-8
+image: maven:3.6.0-jdk-8
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=./.m2/repository"

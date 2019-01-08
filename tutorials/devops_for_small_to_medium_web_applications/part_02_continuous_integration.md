@@ -305,7 +305,7 @@ to compile and package the application.
 
 This pipeline is triggered when somebody pushes code to the server. It is configured by the ".gitlab-ci.yml" file:
 ```yaml
-image: maven:3.5.4-jdk-8
+image: maven:3.6.0-jdk-8
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=./.m2/repository"
@@ -324,7 +324,7 @@ build:
     paths:
       - target/*.jar
 ```
-The first line "image: maven:3.5.4-jdk-8" defines the Docker image used to execute the build command (as you can see,
+The first line "image: maven:3.6.0-jdk-8" defines the Docker image used to execute the build command (as you can see,
 using Docker relieves us to setup the JDK 8 and Maven on the GitLab runner manually).
 
 The "MAVEN_OPTS" variable and the "cache" block are an optimization: because Maven takes a lot of time to download
