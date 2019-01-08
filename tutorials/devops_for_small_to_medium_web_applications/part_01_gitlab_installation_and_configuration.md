@@ -43,8 +43,8 @@ Important: due to a limitation in [Direct Mail](https://www.alibabacloud.com/pro
 domain name with less than 28 characters.
 
 The second step is to create ECS instances and related resources:
-* Go to the [VPC console](https://vpc.console.aliyun.com/) (
-  [please click here for more information about VPCs](https://www.alibabacloud.com/product/vpc));
+* Go to the [VPC console](https://vpc.console.aliyun.com/)
+  (please click [here](https://www.alibabacloud.com/product/vpc) for more information about VPCs);
 * Select the [region](https://www.alibabacloud.com/help/doc-detail/40654.htm) where you want to create the VPC on top
   of the page (for example "Singapore");
 * Click on "Create VPC";
@@ -75,7 +75,7 @@ The second step is to create ECS instances and related resources:
   * Region = the same as your VPC and the same availability zone as the VSwitch
   * Instance Type = filter by vCPU = 2, Memory = 4 GiB, Current Generation tab, and select a remaining type
     such as "ecs.n4.large"
-  * Image = Ubuntu 16.04 64bit
+  * Image = Ubuntu 18.04 64bit
   * System Disk = Ultra Disk 40 GiB
   * Network = VPC, select the VPC and VSwitch you have just created
   * Do NOT assign a public IP (we will create an EIP instead, which is more flexible)
@@ -147,7 +147,7 @@ Open your web browser on "http://gitlab.my-sample-domain.xyz". You should have a
 ![First GitLab screen](images/gitlab-first-screen.png)
 
 Congratulation if you get a similar screen! In case it doesn't work, please first make sure you didn't miss a step,
-then raise an issue if the problem persists.
+then [raise an issue](https://github.com/alibabacloud-howto/devops/issues) if the problem persists.
 
 Do not enter your new password yet because you are using an unencrypted connection. Let's fix this problem now.
 
@@ -190,9 +190,14 @@ Before going further we still need to configure two things:
 * Automatic backup in order to avoid loosing data.
 
 ## Mail server configuration
-Let's start with the email server. Go back to the Alibaba Cloud web console and execute the following instructions:
+Note: [Direct Mail](https://www.alibabacloud.com/product/directmail) is not available in all regions, but you can
+configure it in a different one from where you have created your ECS. At the time of writing, Direct Mail is
+available in China (Hangzhou), Singapore and Australia (Sydney). Please
+[contact us](mailto:projectdelivery@alibabacloud.com) if you need it in another region.
+
+Go back to the Alibaba Cloud web console and execute the following instructions:
 * Go to the [Direct Mail console](https://dm.console.aliyun.com/);
-* Select the same region as your ECS on top of the page;
+* Select the region on top of the page;
 * Click on the "Email Domains" item on the left menu;
 * Click on the "New Domain" button;
 * In the new form, set the domain as "mail.my-sample-domain.xyz" (the domain you chose earlier with the prefix "mail.");
@@ -378,7 +383,7 @@ mkdir /mnt/gitlab-bucket
 ossfs gitlab-my-sample-domain-xyz /mnt/gitlab-bucket -ourl=http://oss-ap-southeast-1-internal.aliyuncs.com
 
 # Check it works
-echo "It works!" > /mnt/gitlab-bucket/test.txt
+echo "It works" > /mnt/gitlab-bucket/test.txt
 
 # Unmount the OSS bucket
 umount /mnt/gitlab-bucket
@@ -387,7 +392,7 @@ Check that the test file is present in your bucket:
 * Go to the [OSS console](https://oss.console.aliyun.com/);
 * Click on your bucket name on the left menu;
 * Click on "Files" on the top menu;
-* The file "test.txt" should be present and should contain "It works!";
+* The file "test.txt" should be present and should contain "It works";
 * Delete this file.
 
 Configure the OSS bucket so that it is automatically mounted when the ECS machine starts. Create the following file:
@@ -499,7 +504,7 @@ following instructions:
   * Region = the same as the ECS instance where you have installed GitLab
   * Instance Type = filter by vCPU = 2, Memory = 4 GiB, Current Generation tab, and select a remaining type
     such as "ecs.n4.large"
-  * Image = Ubuntu 16.04 64bit
+  * Image = Ubuntu 18.04 64bit
   * System Disk = Ultra Disk 40 GiB
   * Network = VPC, select the VPC and VSwitch of the GitLab ECS instance
   * Assign a public IP (no need of an EIP this time)
@@ -560,6 +565,7 @@ Now we need to connect the runner with GitLab:
 * Click on the "Runners" item in the left menu;
 
 The bottom of the page contains an URL and a token:
+
 ![URL and token for the runner](images/gitlab-runner-configuration.png)
 
 Go back to the "web-terminal" connected to the runner machine, and type:
@@ -655,7 +661,7 @@ unattended-upgrade -d
 ```
 The logs of `unattended-upgrades` are printed in `/var/log/unattended-upgrades`.
 
-More information about automatic update [can be found here](https://help.ubuntu.com/16.04/serverguide/automatic-updates.html.en).
+More information about automatic update [can be found here](https://help.ubuntu.com/18.04/serverguide/automatic-updates.html.en).
 
 ## Upgrade
 The described architecture for GitLab is fine as long as the number of users is not too large. However there are
@@ -673,7 +679,7 @@ evolve into a distributed system involving the following cloud resources:
 * A [NAS](https://www.alibabacloud.com/product/nas) to let multiple ECS instances to share a common file storage system;
 * An external [database](https://www.alibabacloud.com/product/apsaradb-for-rds-postgresql).
 
-As you can see the complexity can quickly increase. Tools such as [Packer](https://www.packer.io/) (machine image
+As you can see the complexity can quickly increase. Tools such as [Packer](https://www.packer.io/) (virtual machine image
 builder), [Terraform](https://www.terraform.io/) (infrastructure as code software) or [Chef](https://www.chef.io/) /
 [Puppet](https://puppet.com/) / [Ansible](https://www.ansible.com/) / [SaltStack](https://www.saltstack.com/)
 (configuration management) can greatly help managing it: they require an initial investment but allow organizations
