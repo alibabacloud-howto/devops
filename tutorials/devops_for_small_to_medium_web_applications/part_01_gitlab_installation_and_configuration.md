@@ -32,12 +32,15 @@ The following diagram illustrates the architecture we will put in place for GitL
 ![GitLab architecture](images/diagrams/gitlab_architecture.png)
 
 ## Cloud resources creation
-The first step is to buy a domain name. This is necessary if you want to enable security your servers:
+The first step is to buy a domain name. This is necessary if you want to enable security on your servers:
 * Sign in and open the [Alibaba Cloud console](https://home-intl.console.aliyun.com);
 * Go to the [Domain console](https://dc.console.aliyun.com/);
 * Click on the "Purchase" button;
 * Choose a domain, such as "my-sample-domain.xyz" and follow the instructions to buy it;
 * Return to the [Domain console](https://dc.console.aliyun.com/) and refresh the page in order to see your new domain;
+
+Important: due to a limitation in [Direct Mail](https://www.alibabacloud.com/product/directmail), please choose a
+domain name with less than 28 characters.
 
 The second step is to create ECS instances and related resources:
 * Go to the [VPC console](https://vpc.console.aliyun.com/) (
