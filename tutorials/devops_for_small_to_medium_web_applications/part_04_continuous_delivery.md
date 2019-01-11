@@ -423,7 +423,7 @@ a new web browser tab and follow these instructions:
 * Enter "system" in the "ImageOwnerAlias" field;
 * Click on the "Submit Request" button at the bottom;
 * The "Response Result" panel should contain a tree of available images; expand each image and save the value of the
-  most recent "ImageId" (e.g. ubuntu_16_0402_64_20G_alibase_20180409.vhd);
+  most recent "ImageId" (e.g. ubuntu_18_04_64_20G_alibase_20181212.vhd);
 
 Now that we have the "InstanceTypeId" and "ImageId", go back to your terminal and type:
 ```bash
@@ -442,7 +442,7 @@ Packer should output something like this:
 alicloud-ecs output will be in this color.
 
 ==> alicloud-ecs: Force delete flag found, skipping prevalidating image name.
-    alicloud-ecs: Found image ID: ubuntu_16_0402_64_20G_alibase_20180409.vhd
+    alicloud-ecs: Found image ID: ubuntu_18_04_64_20G_alibase_20181212.vhd
 ==> alicloud-ecs: Creating temporary keypair: packer_5bea5aa2-e524-1af8-80d1-1db78347ed15
 ==> alicloud-ecs: Creating vpc
 ==> alicloud-ecs: Creating vswitch...
@@ -972,7 +972,7 @@ datasources:
 ```hcl-terraform
 data "alicloud_images" "ubuntu_images" {
   owners = "system"
-  name_regex = "ubuntu_16[a-zA-Z0-9_]+64"
+  name_regex = "ubuntu_18[a-zA-Z0-9_]+64"
   most_recent = true
 }
 

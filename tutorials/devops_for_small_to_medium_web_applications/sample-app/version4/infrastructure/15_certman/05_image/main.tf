@@ -23,7 +23,7 @@ data "alicloud_vswitches" "app_vswitches_zone_0" {
 // Ubuntu images
 data "alicloud_images" "ubuntu_images" {
   owners = "system"
-  name_regex = "ubuntu_16[a-zA-Z0-9_]+64"
+  name_regex = "ubuntu_18[a-zA-Z0-9_]+64"
   most_recent = true
 }
 
