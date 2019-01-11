@@ -290,7 +290,7 @@ Let's release our cloud resources. With your terminal execute the following comm
 # Release our cloud resources
 terraform destroy
 ```
-Terraform print its plan as usual:
+Terraform prints its plan as usual:
 ```
 alicloud_vpc.sample_vpc: Refreshing state... (ID: vpc-t4nhi7y0wpzkfr2auxc0p)
 data.alicloud_zones.az: Refreshing state...
@@ -1194,7 +1194,7 @@ http://dev.my-sample-domain.xyz/). You should obtain something like this:
 ![Application running in Alibaba Cloud](images/application-running.png)
 
 Look at the top-right of the page: the hostname and instance ID allow you to know which ECS instance responded to
-your HTTP request. Refresh the page several times and look what happen:
+your HTTP request. Refresh the page several times and look what happens:
 
 ![Application on first zone](images/application-instance-id-zone-0.png)
 
@@ -1203,12 +1203,12 @@ your HTTP request. Refresh the page several times and look what happen:
 As you can see, your HTTP requests are distributed among your two ECS instances.
 
 Note: if you wish, you can enable [session persistence](https://www.alibabacloud.com/help/doc-detail/85949.htm) when
-configuring your SLB listener. That would allow each user to "stick" to the same ECS instance for all his HTTP requests,
+configuring your SLB listener. That would allow a user to "stick" to the same ECS instance for all his HTTP requests,
 which is nice if you want to better exploit a local cache on your application server. However the disadvantage of this
 solution is that it might unbalance the load on your ECS instances. There are other solutions for caching, such as
 [Memcached](https://memcached.org/) or [Redis](https://redis.io/).
 
-After you have finished to study your environment, we need to delete it (it will be the responsibility of the CI/CD
+After you have finished to study your environment, you need to delete it (it will be the responsibility of the CI/CD
 pipeline to re-create and update it). Open a terminal and run:
 ```bash
 # Go to the last sub-group folder
@@ -1372,8 +1372,9 @@ feature branch only triggers the "build" and "quality" stages.
 
 In addition, because this stage is quite large, it has been split into multiple Bash scripts located in the
 folder "gitlab-ci-scripts/deploy":
-* *get_env_name_by_branch_name.sh* is quite simple: it gives the environment name ("dev", "pre-prod" and "prod") for the
-  current branch ("master", "pre-production" and "production"):
+* [get_env_name_by_branch_name.sh](https://github.com/alibabacloud-howto/devops/blob/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version3/gitlab-ci-scripts/deploy/get_env_name_by_branch_name.sh)
+  is quite simple: it gives the environment name ("dev", "pre-prod" and "prod") for the current branch ("master",
+  "pre-production" and "production"):
   ```bash
   #!/usr/bin/env bash
   #
@@ -1396,8 +1397,9 @@ folder "gitlab-ci-scripts/deploy":
       echo ${ENV_NAME_MASTER};
   fi
   ```
-* *get_sub_domain_name_by_branch_name.sh* is similar to *get_env_name_by_branch_name.sh*, but it gives the sub-domain
-  name instead ("dev", "pre-prod" and "www"):
+* [get_sub_domain_name_by_branch_name.sh](https://github.com/alibabacloud-howto/devops/blob/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version3/gitlab-ci-scripts/deploy/get_sub_domain_name_by_branch_name.sh)
+  is similar to *get_env_name_by_branch_name.sh*, but it gives the sub-domain name instead ("dev", "pre-prod"
+  and "www"):
   ```bash
   #!/usr/bin/env bash
   #
@@ -1420,7 +1422,8 @@ folder "gitlab-ci-scripts/deploy":
       echo ${SUB_DOMAIN_NAME_MASTER};
   fi
   ```
-* *install_tools.sh* installs [OSSFS](https://github.com/aliyun/ossfs), [Terraform](https://www.terraform.io/) and
+* [install_tools.sh](https://github.com/alibabacloud-howto/devops/blob/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version3/gitlab-ci-scripts/deploy/install_tools.sh)
+  installs [OSSFS](https://github.com/aliyun/ossfs), [Terraform](https://www.terraform.io/) and
   [Packer](https://www.packer.io/) on top of the [Ubuntu Docker image](https://hub.docker.com/_/ubuntu/):
   ```bash
   #!/usr/bin/env bash
@@ -1467,7 +1470,8 @@ folder "gitlab-ci-scripts/deploy":
   
   echo "Installation of OSSFS, Terraform and Packer completed."
   ```
-* *mount_ossfs.sh* makes our OSS bucket accessible like a normal folder:
+* [mount_ossfs.sh](https://github.com/alibabacloud-howto/devops/blob/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version3/gitlab-ci-scripts/deploy/mount_ossfs.sh)
+  makes our OSS bucket accessible like a normal folder:
   ```bash
   #!/usr/bin/env bash
   #
@@ -1493,7 +1497,8 @@ folder "gitlab-ci-scripts/deploy":
   
   echo "OSS bucket ${GITLAB_BUCKET_NAME} mounted with success into ${BUCKET_LOCAL_PATH}."
   ```
-* *build_basis_infra.sh* runs the Terraform scripts to build the basis infrastructure:
+* [build_basis_infra.sh](https://github.com/alibabacloud-howto/devops/blob/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version3/gitlab-ci-scripts/deploy/build_basis_infra.sh)
+  runs the Terraform scripts to build the basis infrastructure:
   ```bash
   #!/usr/bin/env bash
   #
@@ -1539,7 +1544,8 @@ folder "gitlab-ci-scripts/deploy":
   Note 1: It is possible to directly configure the
   [local backend](https://www.terraform.io/docs/backends/types/local.html) to directly target the folder mounted
   by OSSFS (via the `terraform init` command). However there is a bug that corrupts tfstate files.
-* *build_webapp_infra.sh* runs the Terraform scripts to build the application infrastructure:
+* [build_webapp_infra.sh](https://github.com/alibabacloud-howto/devops/blob/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version3/gitlab-ci-scripts/deploy/build_webapp_infra.sh)
+  runs the Terraform scripts to build the application infrastructure:
   ```bash
   #!/usr/bin/env bash
   #
