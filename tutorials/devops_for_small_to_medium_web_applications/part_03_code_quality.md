@@ -28,7 +28,7 @@ Let's create an ECS instance with [SonarQube](https://www.sonarqube.org/):
   * Region = the same region and availability zone as your GitLab server
   * Instance Type = filter by vCPU = 2, Memory = 4 GiB, Current Generation tab, and select a remaining type
     such as "ecs.n4.large"
-  * Image = Ubuntu 16.04 64bit
+  * Image = Ubuntu 18.04 64bit
   * System Disk = Ultra Disk 40 GiB
   * Network = VPC, select the same VPC and VSwitch as the GitLab server
   * Do NOT assign a public IP (we will create an EIP instead, which is more flexible)
@@ -171,7 +171,7 @@ In the configuration file:
   * sonar.path.data=/var/sonarqube/data
   * sonar.path.temp=/var/sonarqube/temp
   
-Save and quit by pressing CTRL+X. Back to Bash, continue the installation:
+Save and quit by pressing CTRL+X, then continue the installation:
 ```bash
 # Create a service file for Systemd
 nano /etc/systemd/system/sonarqube.service
@@ -289,7 +289,7 @@ We now need to change the administrator password:
   * Old Password = admin
   * New Password = YourS0narQubeP@ssword
   * Confirm Password = YourS0narQubeP@ssword
-* Click on the "Change password" button; The message "The password has been changed!" should be displayed.
+* Click on the "Change password" button; the message "The password has been changed!" should be displayed.
 
 Let's create a normal user:
 * Click on the "Administration" item on the top menu;
@@ -547,7 +547,7 @@ Note: Code coverage is a good indicator before you attempt to execute a major
 you have a greater chance that your unit tests will catch bugs before they hit production. 
 
 ## CI pipeline testing
-Let's break our pipeline on purpose!
+Let's break our pipeline!
 
 Let's start with a unit test:
 ```bash
@@ -565,7 +565,7 @@ Into:
 ```java
 assertEquals("Task 2222222222", createdTask2.getDescription());
 ```
-Save by pressing CTRL+X. Back to Bash, commit the change:
+Save by pressing CTRL+X, then commit the change:
 ```bash
 # Check the files to commit
 git status
@@ -652,7 +652,7 @@ And your SonarQube project:
 
 ![SonarQube with code issue (details)](images/sonarqube-major-issue-details.png)
 
-This time the problem come from a bug inside the code. Note: thread-safety issues are usually quite hard to fix because
+This time the problem comes from a bug inside the code. Note: thread-safety issues are usually quite hard to fix because
 the bugs are not easy to reproduce. Let's fix the code:
 ```bash
 # Open the file to fix
