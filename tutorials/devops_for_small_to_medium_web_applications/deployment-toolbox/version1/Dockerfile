@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 ENV OSSFS_VERSION=1.80.5
 ENV TERRAFORM_VERSION=0.11.11
@@ -6,7 +6,7 @@ ENV PACKER_VERSION=1.3.3
 
 # Install OSSFS
 RUN apt-get -y update
-RUN apt-get -y install gdebi-core wget unzip
+RUN apt-get -y install gdebi-core wget unzip libssl1.0.0
 RUN wget "https://github.com/aliyun/ossfs/releases/download/v${OSSFS_VERSION}/ossfs_${OSSFS_VERSION}_ubuntu16.04_amd64.deb"
 RUN gdebi -n "ossfs_${OSSFS_VERSION}_ubuntu16.04_amd64.deb"
 
