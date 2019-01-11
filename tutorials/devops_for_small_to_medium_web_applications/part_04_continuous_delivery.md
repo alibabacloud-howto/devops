@@ -690,8 +690,6 @@ ls -l infrastructure/10_webapp
 
 As you can see the scripts are organized like this:
 * 05_vpc_slb_eip_domain - "basis group" (setup VPC, VSwitches, ...)
-* 06_domain_step_2 - workaround for a bug in the `alicloud_dns_record` Terraform resource; it also
-  belongs to the "basis group"
 * 10_webapp - folder that contains the "application group"
   * 05_rds - setup the MySQL database
   * 10_image - build the VM image configured to connect to the MySQL database
@@ -802,31 +800,15 @@ resource "alicloud_dns_record" "app_record_oversea" {
   value = "${alicloud_eip.app_eip.ip_address}"
   ttl = 600
 }
-```
-
-There is currently a bug in the `alicloud_dns_record` resource. This is the reason why we will have to run the
-`terraform apply` command twice in the folder "05_vpc_slb_eip_domain". This is also the reason why we had to create
-"06_domain_step_2/main.tf":
-```hcl-terraform
-data "alicloud_dns_records" "app_record_overseas" {
-  domain_name = "${var.domain_name}"
-  type = "A"
-  host_record_regex = "${var.sub_domain_name}"
-  line = "oversea"
-}
-
 resource "alicloud_dns_record" "app_record_default" {
   name = "${var.domain_name}"
   type = "A"
   host_record = "${var.sub_domain_name}"
   routing = "default"
-  value = "${data.alicloud_dns_records.app_record_overseas.records.0.value}"
+  value = "${alicloud_eip.app_eip.ip_address}"
   ttl = 600
 }
 ```
-
-Note: this workaround is useful if you want to make your web application available in Mainland China
-(`routing = "default"`) and outside (`routing = "oversea"`).
 
 Let's build the "basis group" of our infrastructure. Open your terminal and run:
 ```bash
@@ -842,24 +824,6 @@ export ALICLOUD_REGION="your-region-id"
 terraform init
 
 # Create our infrastructure (note: adapt the domain_name according to your setup)
-terraform apply  \
-    -var 'env=dev' \
-    -var 'domain_name=my-sample-domain.xyz' \
-    -var 'sub_domain_name=dev'
-
-# Re-run the last command because of the bug in "alicloud_dns_record"
-terraform apply  \
-    -var 'env=dev' \
-    -var 'domain_name=my-sample-domain.xyz' \
-    -var 'sub_domain_name=dev'
-
-# Go to the 06_domain_step_2 folder
-cd ../06_domain_step_2
-
-# Initialize Terraform
-terraform init
-
-# Finish the creation of the "basis group"
 terraform apply  \
     -var 'env=dev' \
     -var 'domain_name=my-sample-domain.xyz' \
@@ -1262,12 +1226,8 @@ terraform destroy
 cd ../05_rds/
 terraform destroy
 
-# Delete the domain record in Mainland China
-cd ../../06_domain_step_2/
-terraform destroy
-
 # Delete the vpc and other basis group resources
-cd ../05_vpc_slb_eip_domain
+cd ../../05_vpc_slb_eip_domain
 terraform destroy
 ```
 
@@ -1562,18 +1522,6 @@ folder "gitlab-ci-scripts/deploy":
   # Run the Terraform scripts in 05_vpc_slb_eip_domain
   cd infrastructure/05_vpc_slb_eip_domain
   export BUCKET_DIR_PATH="$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/05_vpc_slb_eip_domain"
-  mkdir -p ${BUCKET_DIR_PATH}
-  cp ${BUCKET_DIR_PATH}/*.tfstate* .
-  terraform init -input=false
-  terraform apply -input=false -auto-approve
-  terraform apply -input=false -auto-approve
-  # Note: the last line has to be executed twice because of a bug in the alicloud_dns_record resource
-  rm -f ${BUCKET_DIR_PATH}/*
-  cp *.tfstate* ${BUCKET_DIR_PATH}
-  
-  # Run the Terraform scripts in 06_domain_step_2
-  cd ../06_domain_step_2
-  export BUCKET_DIR_PATH="$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/06_domain_step_2"
   mkdir -p ${BUCKET_DIR_PATH}
   cp ${BUCKET_DIR_PATH}/*.tfstate* .
   terraform init -input=false

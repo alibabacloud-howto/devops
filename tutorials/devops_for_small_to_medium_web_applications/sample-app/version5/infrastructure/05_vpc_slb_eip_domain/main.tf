@@ -138,6 +138,14 @@ resource "alicloud_dns_record" "app_record_oversea" {
   value = "${alicloud_eip.app_eip.ip_address}"
   ttl = 600
 }
+resource "alicloud_dns_record" "app_record_default" {
+  name = "${var.domain_name}"
+  type = "A"
+  host_record = "${var.sub_domain_name}"
+  routing = "default"
+  value = "${alicloud_eip.app_eip.ip_address}"
+  ttl = 600
+}
 
 // Log project, store and machine group
 resource "alicloud_log_project" "app_log_project" {

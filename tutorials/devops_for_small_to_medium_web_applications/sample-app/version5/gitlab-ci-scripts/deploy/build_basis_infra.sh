@@ -44,18 +44,6 @@ mkdir -p ${BUCKET_DIR_PATH}
 cp ${BUCKET_DIR_PATH}/*.tfstate* .
 terraform init -input=false
 terraform apply -input=false -auto-approve
-terraform apply -input=false -auto-approve
-# Note: the last line has to be executed twice because of a bug in the alicloud_dns_record resource
-rm -f ${BUCKET_DIR_PATH}/*
-cp *.tfstate* ${BUCKET_DIR_PATH}
-
-# Run the Terraform scripts in 06_domain_step_2
-cd ../06_domain_step_2
-export BUCKET_DIR_PATH="$BUCKET_LOCAL_PATH/infrastructure/$ENV_NAME/06_domain_step_2"
-mkdir -p ${BUCKET_DIR_PATH}
-cp ${BUCKET_DIR_PATH}/*.tfstate* .
-terraform init -input=false
-terraform apply -input=false -auto-approve
 rm -f ${BUCKET_DIR_PATH}/*
 cp *.tfstate* ${BUCKET_DIR_PATH}
 
