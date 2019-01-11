@@ -12,7 +12,9 @@
     "email_address": "{{env `EMAIL_ADDRESS`}}",
     "ossfs_version": "{{env `OSSFS_VERSION`}}",
     "bucket_name": "{{env `BUCKET_NAME`}}",
-    "bucket_endpoint": "{{env `BUCKET_ENDPOINT`}}"
+    "bucket_endpoint": "{{env `BUCKET_ENDPOINT`}}",
+    "aliyun_python_sdk_core_version": "2.11.1",
+    "aliyun_python_sdk_slb_version": "3.2.7"
   },
   "builders": [
     {
@@ -134,14 +136,16 @@
         "export DOMAIN=\"{{user `domain`}}\"",
         "export SUB_DOMAIN=\"{{user `sub_domain`}}\"",
         "export EMAIL_ADDRESS=\"{{user `email_address`}}\"",
+        "export ALIYUN_PYTHON_SDK_CORE_VERSION=\"{{user `aliyun_python_sdk_core_version`}}\"",
+        "export ALIYUN_PYTHON_SDK_SLB_VERSION=\"{{user `aliyun_python_sdk_slb_version`}}\"",
         "apt-get -y install software-properties-common",
         "add-apt-repository -y ppa:certbot/certbot",
         "apt-get -y update",
         "apt-get -y install python-certbot-nginx",
         "cd /opt/certificate-updater",
         "pip install pipenv --upgrade",
-        "pipenv install aliyun-python-sdk-core",
-        "pipenv install aliyun-python-sdk-slb",
+        "pipenv install aliyun-python-sdk-core==${ALIYUN_PYTHON_SDK_CORE_VERSION}",
+        "pipenv install aliyun-python-sdk-slb==${ALIYUN_PYTHON_SDK_SLB_VERSION}",
         "pipenv install pyopenssl",
         "pipenv install pytz",
         "export ESCAPED_ACCESS_KEY=$(echo $ALICLOUD_ACCESS_KEY | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
