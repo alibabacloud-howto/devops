@@ -29,7 +29,7 @@ more complex approach by using SSL/TLS certificates from [Let’s Encrypt](https
 "Let’s Encrypt" is a certificate authority founded by organizations such as the
 [Electronic Frontier Foundation](https://www.eff.org/), the
 [Mozilla Foundation](https://en.wikipedia.org/wiki/Mozilla_Foundation) and [Cisco Systems](https://www.cisco.com/).
-The advantages is that it's free and 100% automated, the main disadvantage is that it only provides
+The advantages are that it's free and 100% automated, the main disadvantage is that it only provides
 [Domain-Validated certificates](https://en.wikipedia.org/wiki/Domain-validated_certificate) (no
 [Organization Validation](https://en.wikipedia.org/wiki/Public_key_certificate#Organization_validation) nor
 [Extended Validation](https://en.wikipedia.org/wiki/Extended_Validation_Certificate)), which is enough for
@@ -41,7 +41,7 @@ In order to configure HTTPS, we first need to obtain a
 [SSL/TLS certificate](https://en.wikipedia.org/wiki/Transport_Layer_Security#Digital_certificates) and configure it
 on our SLB (by adding a [HTTPS listener](https://www.alibabacloud.com/help/doc-detail/86438.htm)).
 
-Once configured, the SLB handles the HTTPS "complexities" and continue to communicate with backend servers via
+Once configured, the SLB handles the HTTPS "complexities" and continues to communicate with backend servers via
 unencrypted HTTP. Thus, a typical HTTPS request works like this:
 * A user opens a HTTPS connection with our web application;
 * The SLB uses its configured SSL/TLS certificate to establish a secured connection;
@@ -355,7 +355,7 @@ This script executes the following actions:
 * Update the default Ubuntu installation and install Nginx;
 * Create the folders and files that will be used to respond to HTTP requests for "/health" and "/.well-known/";
 * Upload a Nginx configuration file (we will create it in a moment, see below);
-* Activate the uploaded configuration and configure Systemd to automatically start Nginx when the machine starts.
+* Activate the uploaded configuration and configure SystemD to automatically start Nginx when the machine starts.
 
 Save and quit by pressing CTRL+X, then create the Nginx configuration file:
 ```bash
@@ -432,12 +432,12 @@ Edit the content with the following changes:
 }
 ```
 This addition adds two provisioners that:
-* Upload a Systemd file "ossfs.service" (see below);
-* Install OSSFS, configure it and configure Systemd to start OSSFS when the machine boots.
+* Upload a SystemD file "ossfs.service" (see below);
+* Install OSSFS, configure it and configure SystemD to start OSSFS when the machine boots.
 
-Save and close by pressing CTRL+X, then create the Systemd file:
+Save and close by pressing CTRL+X, then create the SystemD file:
 ```bash
-# Create the Systemd configuration file for OSSFS
+# Create the SystemD configuration file for OSSFS
 nano resources/ossfs.service
 ```
 Copy the following content to this new file:
@@ -475,7 +475,9 @@ Edit the content with the following changes:
     // ...
     "domain": "{{env `DOMAIN_NAME`}}",
     "sub_domain": "{{env `SUB_DOMAIN_NAME`}}",
-    "email_address": "{{env `EMAIL_ADDRESS`}}"
+    "email_address": "{{env `EMAIL_ADDRESS`}}",
+    "aliyun_python_sdk_core_version": "2.11.1",
+    "aliyun_python_sdk_slb_version": "3.2.7"
   },
   // ...
   "provisioners": [
@@ -529,8 +531,8 @@ Edit the content with the following changes:
         "apt-get -y install python-certbot-nginx",
         "cd /opt/certificate-updater",
         "pip install pipenv --upgrade",
-        "pipenv install aliyun-python-sdk-core",
-        "pipenv install aliyun-python-sdk-slb",
+        "pipenv install aliyun-python-sdk-core==${ALIYUN_PYTHON_SDK_CORE_VERSION}",
+        "pipenv install aliyun-python-sdk-slb==${ALIYUN_PYTHON_SDK_SLB_VERSION}",
         "pipenv install pyopenssl",
         "pipenv install pytz",
         "export ESCAPED_ACCESS_KEY=$(echo $ALICLOUD_ACCESS_KEY | sed -e 's/\\\\/\\\\\\\\/g; s/\\//\\\\\\//g; s/&/\\\\\\&/g')",
@@ -568,7 +570,7 @@ We are also uploading many new files:
   "certificate-updater.py" periodically.
 
 The last provisioner installs certbot and libraries for our Python script, updates the Python script configuration,
-and configures Systemd to start OSSFS when the machine boots.
+and configures SystemD to start OSSFS when the machine boots.
 
 Note: you might have remarked that we install Python packages with
 [pipenv](https://pipenv.readthedocs.io/en/latest/), but not with [pip](https://pypi.org/project/pip/). The reason
@@ -1190,7 +1192,7 @@ The `curl` command should succeed with the following logs:
 ```
 
 Open your application in your web browser with the HTTPS URL (i.e. https://dev.my-sample-domain.xyz/) and click on the
-padlock icon on the right of the URL bar. It should indicate that the connection is secured:
+padlock icon on the left of the URL bar. It should indicate that the connection is secured:
 
 ![Secured connection](images/application-secured-connection.png)
 
