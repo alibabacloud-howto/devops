@@ -33,7 +33,7 @@ Configuring Alibaba Cloud Log Service is a bit complex. The following diagram il
 
 ![Log collection](images/diagrams/log-collection.png)
 
-In this diagram we can see that in each ECS instance, an application is generating logs and sending them to 
+In this diagram we can see that in each ECS instance, an application generates logs and sends them to 
 [Rsyslog](https://en.wikipedia.org/wiki/Rsyslog) (this is the case of our java application, thanks to the
 SystemD configuration file that specifies `StandardOutput=syslog` and `StandardError=syslog`).
 
