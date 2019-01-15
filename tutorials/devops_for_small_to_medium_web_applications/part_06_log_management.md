@@ -52,7 +52,7 @@ Both the log project and Logtail must be configured:
 * Logtail needs a configuration to understand how to parse logs from Rsyslog (the fields / columns in each log line)
   and how to send them to the Log Service (the endpoint, buffer size, ...)
 * The log project needs to be configured in order to know what are the logs that needs to be stored (e.g. from which
-  data source). This configuration is related to the ECS instances via
+  data source). This configuration is "assigned" to the ECS instances via
   [machine groups](https://www.alibabacloud.com/help/doc-detail/28966.htm).
 
 ## Infrastructure improvements
