@@ -16,7 +16,7 @@ cd installation_tmp
 
 # Install OSSFS
 apt-get -y update
-apt-get -y install gdebi-core wget unzip
+apt-get -y install gdebi-core wget unzip libssl1.0.0
 wget "https://github.com/aliyun/ossfs/releases/download/v${OSSFS_VERSION}/ossfs_${OSSFS_VERSION}_ubuntu16.04_amd64.deb"
 gdebi -n "ossfs_${OSSFS_VERSION}_ubuntu16.04_amd64.deb"
 

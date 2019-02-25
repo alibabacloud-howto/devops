@@ -58,7 +58,7 @@ quality:
 
 deploy:
   stage: deploy
-  image: ubuntu:16.04
+  image: ubuntu:18.04
   script:
     - "export ENV_NAME=$(./gitlab-ci-scripts/deploy/get_env_name_by_branch_name.sh $CI_COMMIT_REF_NAME)"
     - "export SUB_DOMAIN_NAME=$(./gitlab-ci-scripts/deploy/get_sub_domain_name_by_branch_name.sh $CI_COMMIT_REF_NAME)"
