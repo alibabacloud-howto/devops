@@ -148,16 +148,16 @@ mkdir -p /var/sonarqube/temp
 
 # Download and unzip SonarQube (LTS version)
 cd /opt/sonarqube
-wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-6.7.5.zip # URL from https://www.sonarqube.org/downloads/
-unzip sonarqube-6.7.5.zip
-rm sonarqube-6.7.5.zip
+wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-6.7.6.zip # URL from https://www.sonarqube.org/downloads/
+unzip sonarqube-6.7.6.zip
+rm sonarqube-6.7.6.zip
 
 # Change the SonarQube file owner
 chown -R sonarqube:sonarqube /opt/sonarqube
 chown -R sonarqube:sonarqube /var/sonarqube
 
 # Configure SonarQube
-nano sonarqube-6.7.5/conf/sonar.properties
+nano sonarqube-6.7.6/conf/sonar.properties
 ```
 In the configuration file:
 * Scroll to "# User credentials.", uncomment and set the properties:
@@ -185,8 +185,8 @@ After=syslog.target network.target
 [Service]
 Type=forking
 
-ExecStart=/opt/sonarqube/sonarqube-6.7.5/bin/linux-x86-64/sonar.sh start
-ExecStop=/opt/sonarqube/sonarqube-6.7.5/bin/linux-x86-64/sonar.sh stop
+ExecStart=/opt/sonarqube/sonarqube-6.7.6/bin/linux-x86-64/sonar.sh start
+ExecStop=/opt/sonarqube/sonarqube-6.7.6/bin/linux-x86-64/sonar.sh stop
 
 User=sonarqube
 Group=sonarqube
@@ -201,7 +201,7 @@ Save and quit by pressing CTRL+X. Back to Bash, continue the installation:
 systemctl start sonarqube.service
 
 # Wait few seconds and check it worked (the text must finish with "SonarQube is up")
-cat sonarqube-6.7.5/logs/sonar.log
+cat sonarqube-6.7.6/logs/sonar.log
 
 # You can also check that the following command returns some HTML
 curl http://localhost:9000
@@ -246,7 +246,7 @@ rm /etc/nginx/sites-enabled/default
 nginx -t
 
 # Start Nginx
-systemctl start nginx
+systemctl restart nginx
 ```
 
 In order to check if the installation is successful, open a new web browser tab to "http://sonar.my-sample-domain.xyz/"
