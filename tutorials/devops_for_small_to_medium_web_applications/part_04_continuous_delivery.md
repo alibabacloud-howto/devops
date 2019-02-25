@@ -1347,7 +1347,7 @@ stages:
 # ...
 deploy:
   stage: deploy
-  image: ubuntu:16.04
+  image: ubuntu:18.04
   script:
     - "export ENV_NAME=$(./gitlab-ci-scripts/deploy/get_env_name_by_branch_name.sh $CI_COMMIT_REF_NAME)"
     - "export SUB_DOMAIN_NAME=$(./gitlab-ci-scripts/deploy/get_sub_domain_name_by_branch_name.sh $CI_COMMIT_REF_NAME)"
@@ -1444,7 +1444,7 @@ folder "gitlab-ci-scripts/deploy":
   
   # Install OSSFS
   apt-get -y update
-  apt-get -y install gdebi-core wget unzip
+  apt-get -y install gdebi-core wget unzip libssl1.0.0
   wget "https://github.com/aliyun/ossfs/releases/download/v${OSSFS_VERSION}/ossfs_${OSSFS_VERSION}_ubuntu16.04_amd64.deb"
   gdebi -n "ossfs_${OSSFS_VERSION}_ubuntu16.04_amd64.deb"
   
