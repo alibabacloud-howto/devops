@@ -149,6 +149,8 @@ Open your web browser on "http://gitlab.my-sample-domain.xyz". You should have a
 Congratulation if you get a similar screen! In case it doesn't work, please first make sure you didn't miss a step,
 then [raise an issue](https://github.com/alibabacloud-howto/devops/issues) if the problem persists.
 
+Note: if you get automatically redirected to HTTPS, please continue to the [next section](#https-configuration) first.
+
 Do not enter your new password yet because you are using an unencrypted connection. Let's fix this problem now.
 
 ## HTTPS configuration
@@ -598,7 +600,7 @@ Our GitLab is now ready to be used! But there are few more points to consider be
 As administrator, there are few steps you need to follow in order to improve your GitLab account:
 * Open GitLab in your web browser (the URL must be like https://gitlab.my-sample-domain.xyz/);
 * Click on your avatar on the top-right of the page and select "Settings";
-* Correctly set the "Full name" and "Email" fields and click on the "Edit profile settings" button;
+* Correctly set the "Full name" and "Email" fields and click on the "Update profile settings" button;
 * Click on the "Account" item on the left menu;
 * Change your username and click on the "Update username" button, then confirm it again when the prompt appears (this
   step improves security as attackers would have to guess your username in addition to your password).
