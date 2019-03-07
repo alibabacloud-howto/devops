@@ -7,10 +7,11 @@ layout: default
 ## Summary
 0. [Introduction](#introduction)
 1. [Prerequisite](#prerequisite)
-2. [Gitlab environment](#gitlab-environment)
-3. [Kubernetes environment](#kubernetes-environment)
-4. [Container registry](#container-registry)
-5. [CI/CI Pipeline](#ci/ci-pipeline)
+2. [Preparation](#preparation)
+3. [Gitlab environment](#gitlab-environment)
+4. [Kubernetes environment](#kubernetes-environment)
+5. [Container registry](#container-registry)
+6. [CI/CI Pipeline](#cicd-pipeline)
 
 ## Introduction
 The goal of this tutorial is to explain how to create a [CI](https://en.wikipedia.org/wiki/Continuous_integration) /
@@ -35,9 +36,20 @@ to [setup the command line tool 'kubectl'](https://kubernetes.io/docs/tasks/tool
 
 You should also have [Git](https://git-scm.com/) installed on your computer.
 
-Important: please download the 
+## Preparation
+Please download the
 [related resources](https://github.com/alibabacloud-howto/devops/tree/master/tutorials/getting_started_with_devops_with_kubernetes)
-before moving to the next section.
+on your computer by cloning this Git repository. Open a terminal and enter the following commands:
+```bash
+# Navigate to a folder where you want to clone this tutorial
+cd ~/projects
+
+# Clone this repository
+git clone git@github.com:alibabacloud-howto/devops.git
+
+# Navigate to this tutorial folder
+cd devops/tutorials/getting_started_with_devops_with_kubernetes/
+```
 
 ## Gitlab environment
 This tutorial uses [Gitlab](https://about.gitlab.com/) to manage Git repositories and to run CI/CD pipelines. The
