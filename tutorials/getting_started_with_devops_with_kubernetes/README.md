@@ -119,6 +119,9 @@ export ALICLOUD_ACCESS_KEY="your-accesskey-id"
 export ALICLOUD_SECRET_KEY="your-accesskey-secret"
 export ALICLOUD_REGION="your-region-id"
 
+# Navigate to the folder where you have cloned this tutorial
+cd ~/projects/devops/tutorials/getting_started_with_devops_with_kubernetes/
+
 cd environment/kubernetes
 terraform init
 terraform apply -var 'k8s_password=YourSecretR00tPassword'
