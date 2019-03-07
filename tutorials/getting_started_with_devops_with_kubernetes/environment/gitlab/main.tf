@@ -95,7 +95,7 @@ resource "alicloud_instance" "gitlab_instance" {
   }
 }
 resource "alicloud_instance" "gitlab_runner_instance" {
-  instance_name = "cicdk8s-gitlab-instance"
+  instance_name = "cicdk8s-gitlab-runner-instance"
   image_id = "${data.alicloud_images.ubuntu_images.images.0.id}"
   availability_zone = "${alicloud_vswitch.vswitch.availability_zone}"
   system_disk_category = "cloud_ssd"
