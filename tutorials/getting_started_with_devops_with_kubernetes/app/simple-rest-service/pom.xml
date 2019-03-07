@@ -51,7 +51,7 @@ limitations under the License.
             <plugin>
                 <groupId>com.google.cloud.tools</groupId>
                 <artifactId>jib-maven-plugin</artifactId>
-                <version>0.9.11</version>
+                <version>1.0.1</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
