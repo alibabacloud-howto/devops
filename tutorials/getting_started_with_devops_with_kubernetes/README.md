@@ -47,7 +47,7 @@ cd ~/projects
 # Clone this repository
 git clone git@github.com:alibabacloud-howto/devops.git
 
-# Navigate to this tutorial folder
+# Navigate to the folder of this tutorial
 cd devops/tutorials/getting_started_with_devops_with_kubernetes/
 ```
 
@@ -55,7 +55,7 @@ cd devops/tutorials/getting_started_with_devops_with_kubernetes/
 This tutorial uses [Gitlab](https://about.gitlab.com/) to manage Git repositories and to run CI/CD pipelines. The
 community edition is free, simple to use and have all the features that we need for this demo.
 
-Open a terminal and enter the following commands with your own access key and
+Enter the following commands in your terminal with your own access key and
 [region](https://www.alibabacloud.com/help/doc-detail/40654.htm) information:
 ````bash
 export ALICLOUD_ACCESS_KEY="your-accesskey-id"
