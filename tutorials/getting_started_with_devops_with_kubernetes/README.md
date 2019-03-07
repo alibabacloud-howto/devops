@@ -137,8 +137,8 @@ k8s_master_public_ip = e.f.g.h
 Execute the following commands in order to configure "kubectl" (the password is the one you set with the
 variable `k8s_password`):
 ````bash
-mkdir $HOME/.kube
-scp root@e.f.g.h:/etc/kubernetes/kube.conf $HOME/.kube/config # The IP address is the one from `k8s_master_public_ip`
+mkdir ~/.kube
+scp root@e.f.g.h:/etc/kubernetes/kube.conf ~/.kube/config # The IP address is the one from `k8s_master_public_ip`
 
 # Check that it works
 kubectl cluster-info
@@ -194,12 +194,12 @@ Open the web browser tab you created [in the Gitlab environment section](#gitlab
 The project repository is now ready to host files:
 * Open a terminal on your local machine and type:
   ```bash
-  mkdir -p $HOME/projects
-  cd $HOME/projects
+  mkdir -p ~/projects
+  cd ~/projects
   git clone git@a.b.c.d:root/simple-rest-service.git # The IP address comes from `gitlab_public_ip`
   cd simple-rest-service
   ```
-* Copy the following files from "app/simple-rest-service" into the new folder "$HOME/projects/simple-rest-service":
+* Copy the following files from "app/simple-rest-service" into the new folder "~/projects/simple-rest-service":
   * src            - Sample application source code
   * pom.xml        - [Maven](https://maven.apache.org/) project descriptor (declares dependencies and packaging information for the application)
   * deployment.yml - Kubernetes deployment descriptor (describes the deployment and a load balancer service)
