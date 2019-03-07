@@ -221,6 +221,7 @@ The project repository is now ready to host files:
   Protected Branches", type "master" in the Branch attribute, and select "create wildcard master".
 
 Gitlab automatically recognizes the file ".gitlab-ci.yml" and create a pipeline with 3 steps:
+
 0. Compile and execute unit tests;
 1. Create the Docker image with [JIB](https://github.com/GoogleContainerTools/jib) and upload it to
    the [Docker image repository](#docker-image-repository);
@@ -228,7 +229,7 @@ Gitlab automatically recognizes the file ".gitlab-ci.yml" and create a pipeline 
 
 You can see the pipeline in Gitlab by selecting the item "CI / CD > Pipelines" from the left menu.
 
-After you pipeline has been executed completely, you can check you Kubernetes cluster with the following commands:
+After your pipeline has been executed completely, you can check you Kubernetes cluster with the following commands:
 * Check the deployments:
   ```bash
   kubectl get deployments
