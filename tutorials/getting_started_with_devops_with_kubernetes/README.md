@@ -126,16 +126,7 @@ cd environment/kubernetes
 terraform init
 terraform apply -var 'k8s_password=YourSecretR00tPassword'
 ````
-Note 0: it takes about 20min to create a Kubernetes cluster.
-
-Note 1: there is known bug with the `alicloud_cs_kubernetes` resource: if you get the error "There is no any nodes
-in kubernetes cluster", please re-execute the `terraform apply` command.
-
-Note 2: there is another known bug: if you get the error "output.k8s_master_public_ip: Resource
-'alicloud_cs_kubernetes.cluster' does not have attribute 'connections.master_public_ip' for variable
-'alicloud_cs_kubernetes.cluster.connections.master_public_ip'", comment the code in "environment/kubernetes/output.tf"
-with `/* */`, execute the `terraform apply` command, revert your changes in "environment/kubernetes/output.tf" and
-re-execute the `terraform apply` command.
+Note: it takes about 20min to create a Kubernetes cluster.
 
 The output of the script should contain the master node public IP address:
 ```

@@ -13,5 +13,5 @@
  */
 
 output "k8s_master_public_ip" {
-  value = "${alicloud_cs_kubernetes.cluster.connections.master_public_ip}"
+  value = "${lookup(alicloud_cs_kubernetes.cluster.connections, "master_public_ip", "unknown")}"
 }
