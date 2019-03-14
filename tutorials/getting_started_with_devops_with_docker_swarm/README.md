@@ -1,3 +1,7 @@
+---
+layout: default
+---
+{% raw  %}
 # Getting Started with Container Service (Swarm)
 
 ## Summary
@@ -540,3 +544,4 @@ Congratulations, you have completed this tutorial!
 
 ## Support
 If you need help, please don't hesitate to <a href="mailto:projectdelivery@alibabacloud.com">contact us</a>.
+{% endraw %}
