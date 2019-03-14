@@ -62,6 +62,12 @@
     The goal of this tutorial is to explain how to create a CI/CD pipeline in order to deploy an application
     in Kubernetes running on top of Alibaba Cloud.
   concepts: CI/CD, Git, GitLab, Docker, Kubernetes, Terraform, Java, Maven, Spring Boot
+- name: Getting started with CI/CD and Docker Swarm
+  link: tutorials/getting_started_with_devops_with_docker_swarm/README.html
+  description: >-
+    The goal of this tutorial is to explain how to create a CI/CD pipeline in order to deploy an application
+    in Docker Swarm running on top of Alibaba Cloud.
+  concepts: CI/CD, Git, GitHub, Docker, Docker Swarm, Java, Maven, Spring Boot
 - name: Getting started with Rancher
   link: tutorials/getting_started_with_rancher/README.html
   description: >-
