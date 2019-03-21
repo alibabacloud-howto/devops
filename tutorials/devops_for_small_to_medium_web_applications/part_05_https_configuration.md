@@ -93,11 +93,15 @@ it in the following process:
 ## SLB configuration
 Let's start by adding a listener to our SLB in order to let it manage HTTPS connections. For that we will generate a
 temporary [self-signed certificate](https://en.wikipedia.org/wiki/Self-signed_certificate) and update our Terraform
-script. 
+script.
 
-Note: the complete project files with the modifications of this tutorial part are available in the
+Note 1: the complete project files with the modifications of this tutorial part are available in the
 ["sample-app/version4"](https://github.com/alibabacloud-howto/devops/tree/master/tutorials/devops_for_small_to_medium_web_applications/sample-app/version4)
 folder.
+
+Note 2: although we generate a self-signed certificate now, it is later replaced by a real one by the
+[Certificate Manager](#certificate-manager). The self-signed certificate is only used during the Terraform step, as we
+cannot create the necessary cloud resources for the Certificate Manager without it.
 
 Open "gitlab-ci-scripts/deploy/build_basis_infra.sh" and insert the following block before
 `# Set values for Terraform variables`:
