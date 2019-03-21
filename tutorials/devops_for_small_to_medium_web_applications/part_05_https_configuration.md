@@ -86,7 +86,9 @@ it in the following process:
   "/etc/letsencrypt/live/dev.my-sample-domain.xyz/".
   
   Note: beware that Let's Encrypt has [rate limits](https://letsencrypt.org/docs/rate-limits/), so we should take care
-  to run certbot only when necessary.
+  to run certbot only when necessary. This is the reason why we use an
+  [OSS bucket](https://www.alibabacloud.com/help/doc-detail/31817.htm): we store SSL/TLS certificates there and only
+  query Let's Encrypt when they are going to expire.
 
 ## SLB configuration
 Let's start by adding a listener to our SLB in order to let it manage HTTPS connections. For that we will generate a
