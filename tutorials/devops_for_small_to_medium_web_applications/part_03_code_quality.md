@@ -40,10 +40,10 @@ Let's create an ECS instance with [SonarQube](https://www.sonarqube.org/):
 * Finish the instance creation by clicking on the "Create Instance" button;
 * Go back to the [ECS console](https://ecs.console.aliyun.com/), select the "Instances" item on the left menu and
   choose your region on top the screen; you should be able to see your new instance;
-* Click on the ["EIP" item](https://vpcnext.console.aliyun.com/eip) on the left menu;
+* Click on the ["EIP" item](https://vpcnext.console.aliyun.com/eip) in the Network&Security category on the left menu;
 * On the new page, click on "Create EIP";
 * Fill the wizard with the following information:
-  * Region = the region where you have created you ECS
+  * Region = the region where you have created your ECS
   * Max Bandwidth = 1 Mbps
   * Quantity = 1
 * Click on "Buy Now", select the agreement of service and click on "Activate";
@@ -52,10 +52,10 @@ Let's create an ECS instance with [SonarQube](https://www.sonarqube.org/):
 * In the new form, select:
   * Instance Type = ECS Instance
   * ECS Instance = devops-simple-app-sonar/i-generatedstring
-* Click on "OK" to bind the EIP to you ECS instance;
+* Click on "OK" to bind the EIP to your ECS instance;
 * Copy the IP Address of your EIP (it should be something like 47.74.253.23).
 
-The ECS instance is ready, let's register a sub-domain for this machine:
+The ECS instance is ready. Let's register a sub-domain for this machine:
 * Go to the [Domain console](https://dc.console.aliyun.com/);
 * On the row corresponding to your domain (for example "my-sample-domain.xyz"), click on "Resolve";
 * Click on "Add Record";
@@ -67,7 +67,7 @@ The ECS instance is ready, let's register a sub-domain for this machine:
   * TTL = 10 minute(s)
 * Click on "OK" to add the record.
 
-SonarQube requires a database, let's create a
+SonarQube requires a database. Let's create a
 [PostgreSQL RDS instance](https://www.alibabacloud.com/product/apsaradb-for-rds-postgresql):
 * Go to the [ApsaraDB for RDS console](https://rdsnext.console.aliyun.com);
 * Click on the "Create Instance" button;
@@ -89,7 +89,7 @@ SonarQube requires a database, let's create a
 * Set a name for your RDS instance by moving your mouse cursor over it and by clicking on the "pen" icon; set the
   name "devops-simple-app-sonar-rds" and confirm;
 * Click on the instance id;
-* Click on the "Set Whitelist" link in the "Basic Information > Intranet Address" section;
+* Click on the "Configure Whitelist" link in the "Basic Information > Internal IP Address" section;
 * Click on the "Add a Whitelist Group" button;
 * Click on the "Upload ECS Intranet IP Address" link;
 * In the "Whitelist:" field, move your mouse cursor on top of the first IP address;
@@ -108,7 +108,7 @@ Let's now create a database account and collect connection information:
   * Password = YourS0narP@ssword
   * Re-enter Password = YourS0narP@ssword
 * Click on "OK" to create the account;
-* Click on the "Connection Options" item in the left menu, and save the "Intranet Address" in the
+* Click on the "Connection Options" item in the left menu, and copy the "Internal IP Address" in the
   "Connection Information" section (it should be something
   like "rm-gs5wm687b2e3uc770.pgsql.singapore.rds.aliyuncs.com");
 
@@ -125,7 +125,7 @@ apt-get upgrade
 # Install tools
 apt-get install unzip default-jdk postgresql-client
 
-# Connect to the database (use the "Intranet Address" you saved in the paragraph above)
+# Connect to the database (use the "Intranet Address" you copied in the paragraph above)
 psql postgresql://rm-gs5wm687b2e3uc770.pgsql.singapore.rds.aliyuncs.com:3433/postgres -U sonarqube
 ```
 The new command line allows you to configure the PostgreSQL database:
@@ -307,7 +307,7 @@ Let's now force users to log in in order to work on SonarQube:
 * Click on the "Security" item in the left menu;
 * Enable the switch in the "Force user authentication" property and confirm by clicking on the "Save" button;
 
-Now that user configuration is done, let's create our quality gate (the set of conditions to meet in order to let
+Now that user configuration is done. Let's create our quality gate (the set of conditions to meet in order to let
 SonarQube to consider a code analysis as successful):
 * Click on the "Quality Gates" item in the top menu;
 * Click on "SonarQube way" on the left panel;
